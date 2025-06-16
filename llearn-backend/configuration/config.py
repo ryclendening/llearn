@@ -1,4 +1,0 @@
-import openai
-
-key_val ="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"
-openai.api_key= key_val
