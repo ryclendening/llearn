@@ -1,52 +1,58 @@
 import configuration.config as config
-
+import openai
+import app
 
 class StudentChat:
     """
     Represents a student who interacts with a teacher through a chat interface.
     """
 
-    def __init__(self, user_id, assistant):
+    def __init__(self, user_id, lesson_id):
         """
         Initializes a StudentChat object.
 
         Args:
             user_id (str): The ID of the student.
-            assistant (openai.Assistant): The OpenAI assistant used for communication.
         """
         self.user_id = user_id
-        self.sesion_id = None
-        self.assistant = assistant
-        self.session_logs = []
+        self.lesson_id = lesson_id
+        self.objectives = app.learning_objectives_store[lesson_id]['objectives']
+        self.session_logs = []       # logs of the conversation
+        self.chat_history = []       # messages for the chat completions API
+        # System prompt to guide assistant behavior (optional)
+        self.system_prompt = {
+            "role": "system",
+            'content':f"You are a intelligent assistant, but are focusing on teaching a 4th grade student about the following objectives {','.join(self.objectives)}. Do not let the user derail the conversation and make sure they learn these objectives. But don't give them the answers",
+        }
+        self.chat_history.append(self.system_prompt)
 
-    def create_thread(self):
+    def send_new_message(self, stud_text: str):
         """
-        Creates a new thread for the student to use.
-        """
-        self.thread = config.client.beta.threads.create()
-
-    def send_new_message(self, stud_text):
-        """
-        Sends a new message from the student to the teacher.
+        Sends a new message from the student to the assistant and gets a reply.
 
         Args:
             stud_text (str): The text of the student's message.
         """
-        self.session_logs.append({"role": 'user', "message": stud_text})
-        config.client.beta.threads.messages.create(
-            thread_id=self.thread.id,
-            role="user",
-            content=stud_text, )
-        run = config.client.beta.threads.runs.create_and_poll(
-            thread_id=self.thread.id,
-            assistant_id=self.assistant.id)
-        if run.status == 'failed':
-            print("Error reason", run.last_error)
-        if run.status == "completed":
-            messages = config.client.beta.threads.messages.list(thread_id=self.thread.id)
-            message = messages.data[0]
-            assert message.content[0].type == "text"
-            self.session_logs.append({"role": message.role, "message": message.content[0].text.value})
+        # Add the student's message to history
+        self.chat_history.append({"role": "user", "content": stud_text})
+        self.session_logs.append({"role": "user", "message": stud_text})
+
+        # Call OpenAI Chat Completion API
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=self.chat_history,
+            temperature=0.5,
+        )
+
+        # Safely get assistant response content and strip it
+        result = response.choices[0].message.content
+        if result is None:
+            result = ''
+        else:
+            result=result.strip()
+        # Add assistant's reply to history and logs
+        self.chat_history.append({"role": "assistant", "content": result})
+        self.session_logs.append({"role": "assistant", "message": result})
 
     def display_logs(self):
         """
@@ -59,12 +65,14 @@ class StudentChat:
         """
         Displays the most recent message in the conversation logs.
         """
-        print(self.session_logs[-1])
+        if self.session_logs:
+            print(self.session_logs[-1])
+        else:
+            print("No conversation logs yet.")
 
-    def delete_thread(self):
+    def clear_conversation(self):
         """
-        Deletes the thread.
+        Clears the conversation history.
         """
-        config.client.beta.threads.delete(self.thread.id)
-
-
+        self.session_logs = []
+        self.chat_history = [self.system_prompt]
