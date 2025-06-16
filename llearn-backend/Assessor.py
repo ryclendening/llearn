@@ -42,9 +42,9 @@ class AssessorChat:
 
         messages = [self.system_prompt] + self.chat_history + [assessment_prompt]
 
-        response = openai.chat.completions.create( # type: ignore
+        response = openai.chat.completions.create(
             model="gpt-4o",
-            messages=messages,
+            messages=messages, # type: ignore
             temperature=0.2
         )
         

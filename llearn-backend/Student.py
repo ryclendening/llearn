@@ -40,7 +40,7 @@ class StudentChat:
         # Call OpenAI Chat Completion API
         response = openai.chat.completions.create(
             model="gpt-4o",
-            messages=self.chat_history,
+            messages=self.chat_history, # type: ignore
             temperature=0.5,
         )
 
