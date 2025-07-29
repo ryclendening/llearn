@@ -60,5 +60,11 @@ def add_learning_objectives():
 def get_learning_objectives():
     return jsonify(learning_objectives_store), 200
 
+
+@app.route('/api/create-student', methods=['POST'])
+def get_learning_objectives():
+    return jsonify(learning_objectives_store), 200
+
+
 if __name__ == '__main__':
     app.run(debug=True)

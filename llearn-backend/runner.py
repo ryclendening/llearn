@@ -36,6 +36,6 @@ if __name__ == "__main__":
         new_msg = input('what would you like to say?\n')
         test_student2.send_new_message(new_msg)
         test_student2.display_most_recent()
-        test_teacher.assess_performance(test_student2.chat_history)
+        test_teacher.assess_performance(test_student2.chat_history,test_student2.student)
         test_teacher.display_most_recent()
         objectives_sat = test_teacher.get_obj_dict()

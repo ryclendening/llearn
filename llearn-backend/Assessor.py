@@ -9,7 +9,6 @@ class AssessorChat:
 
     def __init__(self, objectives):
         self.session_logs = []
-        self.chat_history = []  # holds messages for Chat Completions
         self.active_users = []
         self.objectives = objectives
 
@@ -24,7 +23,7 @@ class AssessorChat:
                 )
         }
 
-    def assess_performance(self, chat_history):
+    def assess_performance(self, chat_history, student_id):
         """
         Assesses the performance of the student based on objectives.
         Sends chat history to GPT and appends the response.
@@ -40,7 +39,7 @@ class AssessorChat:
             )
         }
 
-        messages = [self.system_prompt] + self.chat_history + [assessment_prompt]
+        messages = [self.system_prompt] + [assessment_prompt]
 
         response = openai.chat.completions.create(
             model="gpt-4o",
@@ -54,7 +53,7 @@ class AssessorChat:
         else:
             result=result.strip()
         print(result)
-        self.session_logs.append({"role": "assistant", "message": result})
+        self.session_logs.append({"student_id":student_id, "message": result})
 
     def display_logs(self):
         """
@@ -74,14 +73,3 @@ class AssessorChat:
         Parses and returns the JSON object of assessed objectives.
         """
         return json.loads(self.session_logs[-1]['message'])
-
-    def format_chat_history(self):
-        """
-        Converts chat history into readable conversation format.
-        """
-        formatted = []
-        for msg in self.chat_history:
-            role = msg["role"].capitalize()
-            content = msg["content"].strip()
-            formatted.append(f"{role}: {content}")
-        return "\n".join(formatted)
