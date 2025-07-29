@@ -1,6 +1,6 @@
 import configuration.config as config
 import openai
-import app
+import data
 
 class StudentChat:
     """
@@ -16,7 +16,7 @@ class StudentChat:
         """
         self.user_id = user_id
         self.lesson_id = lesson_id
-        self.objectives = app.learning_objectives_store[lesson_id]['objectives']
+        self.objectives = data.learning_objectives_store[lesson_id]['objectives']
         self.session_logs = []       # logs of the conversation
         self.chat_history = []       # messages for the chat completions API
         # System prompt to guide assistant behavior (optional)
@@ -53,6 +53,7 @@ class StudentChat:
         # Add assistant's reply to history and logs
         self.chat_history.append({"role": "assistant", "content": result})
         self.session_logs.append({"role": "assistant", "message": result})
+        return result
 
     def display_logs(self):
         """

@@ -1,15 +1,17 @@
 import configuration.config as config
 import json
 import openai
+from datetime import datetime
 
 class AssessorChat:
     """
     Represents a teacher who interacts with a student through a chat interface.
     """
 
-    def __init__(self, objectives):
+    def __init__(self, objectives,class_id):
         self.session_logs = []
         self.active_users = []
+        self.class_id = class_id
         self.objectives = objectives
 
         # System prompt to set the assistant's behavior
@@ -24,36 +26,42 @@ class AssessorChat:
         }
 
     def assess_performance(self, chat_history, student_id):
-        """
-        Assesses the performance of the student based on objectives.
-        Sends chat history to GPT and appends the response.
-        """
+        objective_keys = [f"objective_{i+1}" for i in range(len(self.objectives))]
+        objective_list = "\n".join([f"{k}: {obj}" for k, obj in zip(objective_keys, self.objectives)])
+
         assessment_prompt = {
             "role": "user",
             "content": (
-                f"Assess the student's performance defined as user) based on the following objectives: "
-                f"{', '.join(self.objectives)}.\n\n"
+                f"Assess the student's performance based on the following objectives:\n{objective_list}\n\n"
                 f"Conversation:\n{chat_history}\n\n"
-                f"Return a JSON object in this format only, with 1 siginfying understanding of objective, and 0 representing that a user doesn't understand: "
-                f'{{"objective_1": 0, "objective_2": 1, ..., "objective_n": 0}}'
+                f"Return ONLY a JSON object mapping each objective key to 1 (understood) or 0 (not understood)."
             )
         }
 
-        messages = [self.system_prompt] + [assessment_prompt]
+        messages = [self.system_prompt]+[assessment_prompt]
 
         response = openai.chat.completions.create(
             model="gpt-4o",
             messages=messages, # type: ignore
             temperature=0.2
         )
-        
-        result = response.choices[0].message.content
-        if result is None:
-            result = ''
-        else:
-            result=result.strip()
-        print(result)
-        self.session_logs.append({"student_id":student_id, "message": result})
+
+        result = response.choices[0].message.content or ''
+        result = result.strip()
+
+        try:
+            parsed_result = json.loads(result)
+        except json.JSONDecodeError:
+            parsed_result = None
+
+        self.session_logs.append({ # TODO: Go back and fix the session logging to enhance scalability
+            "user_id": student_id,
+            "timestamp": datetime.now(),
+            "raw_message": result,
+            "parsed_message": parsed_result
+        })
+
+        return parsed_result
 
     def display_logs(self):
         """
