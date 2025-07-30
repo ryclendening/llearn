@@ -59,6 +59,13 @@ async def create_assessor(request: Request):
     active_assessors[class_id] = Assessor.AssessorChat(objectives=objectives, class_id=class_id)
     return {"message": f"Assessor for {class_id} created"}
 
+
+@app.get("/api/get-assessors")
+async def get_assessors():
+    return {"message": list(active_assessors.keys())}
+
+
+
 @app.get("/api/performance/{user_id}")
 async def get_performance(user_id: str):
     if user_id not in active_students:
@@ -69,7 +76,7 @@ async def get_performance(user_id: str):
     logs = assessor.session_logs
 
     for score in reversed(logs):
-        if score["student_id"] == user_id:
+        if score["user_id"] == user_id:
             return score
 
     return {"message": "No assessments found for student."}
