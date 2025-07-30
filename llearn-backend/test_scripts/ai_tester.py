@@ -1,6 +1,10 @@
 import requests
+import websockets
+import asyncio
 
-BASE_URL = "http://127.0.0.1:5000/api"
+
+BASE_URL = "http://127.0.0.1:8000/api"
+BASE_WS_URL = "ws://127.0.0.1:8000/ws/chat"
 
 def test_learning_objectives():
     print("Testing POST /learning-objectives with valid data...")
@@ -44,15 +48,20 @@ def test_create_assessor():
 
 
 
-def test_submit_chat(message):
-    print("Testing POST /submit_chat/student1...")
-    payload = {"message": message}
-    r = requests.post(f"{BASE_URL}/submit_chat/student1", json=payload)
-    assert r.status_code == 200, r.text
-    data = r.json()
-    print("Submit chat response:", data)
-    assert "response" in data
-    print("POST /submit_chat passed.")
+
+async def test_submit_chat_via_websocket(message):
+    uri = f"{BASE_WS_URL}/student1"
+    print(f"Connecting to WebSocket at {uri}...")
+
+    async with websockets.connect(uri) as websocket:
+        print("Connected. Sending message...")
+        await websocket.send(message)
+
+        response = await websocket.recv()
+        print("Received:", response)
+
+        assert response is not None
+        print("WebSocket chat submission passed.")
 
 def test_assess_performance():
     print("Testing GET /assess_performance/student1...")
@@ -79,7 +88,7 @@ if __name__ == "__main__":
     test_learning_objectives()
     test_create_student()
     test_create_assessor()
-    test_submit_chat('hello there')
+    asyncio.run(test_submit_chat_via_websocket('hello there'))
     test_assess_performance()
     test_get_performance()
 
