@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse
-from data import learning_objectives_store, active_assessors, active_students
+from data import learning_objectives_store, active_assessors, active_students, active_rosters
 import Assessor
 import Student
 
@@ -41,6 +41,10 @@ async def create_student(request: Request):
     for field in required_fields:
         if field not in data:
             raise HTTPException(status_code=400, detail=f"Missing required field '{field}'")
+        
+    if data['lesson_id'] not in active_rosters: # check if list exists
+        active_rosters[data['lesson_id']]=[]
+    active_rosters[data['lesson_id']].append(data['user_id']) # add user to lesson_id list
 
     active_students[data['user_id']] = Student.StudentChat(user_id=data['user_id'], lesson_id=data['lesson_id'])
     return {"message": f"Student {data['user_id']} created"}
@@ -62,7 +66,21 @@ async def create_assessor(request: Request):
 
 @app.get("/api/get-assessors")
 async def get_assessors():
-    return {"message": list(active_assessors.keys())}
+    return {"active_lessons": list(active_assessors.keys())}
+
+@app.get("/api/get-roster/{lesson_id}")
+async def get_roster(lesson_id: str):
+    if lesson_id not in active_rosters: # check if list exists
+         raise HTTPException(status_code=404, detail="Lesson not found")
+
+    active_rosters[lesson_id]
+    return {"roster": active_rosters[lesson_id]}
+
+
+@app.get("/api/get-students")
+async def get_students():
+    return {"students": list(active_students.keys())}
+
 
 
 
@@ -71,10 +89,11 @@ async def get_performance(user_id: str):
     if user_id not in active_students:
         raise HTTPException(status_code=404, detail="Student not found")
 
+    if not active_assessors:
+        raise HTTPException(status_code=404, detail="No assessors found")
     student = active_students[user_id]
     assessor = active_assessors[student.lesson_id]
     logs = assessor.session_logs
-
     for score in reversed(logs):
         if score["user_id"] == user_id:
             return score
