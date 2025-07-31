@@ -1,0 +1,173 @@
+/* LearningObjectivesForm.css */
+
+.objectives-page-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center vertically */
+    align-items: center; /* Center horizontally */
+    min-height: 100vh; /* Take full viewport height */
+    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa); /* Consistent gradient background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.objectives-page-title {
+    font-size: 2.5rem;
+    color: #4a148c; /* Dark purple, consistent with other titles */
+    margin-bottom: 30px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.objectives-form-card {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Card-like shadow */
+    max-width: 600px; /* Max width for the form */
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Space between form groups */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Space between label and input */
+}
+
+.form-group label {
+    font-size: 1.1rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.form-input {
+    padding: 12px 15px;
+    width: 100%;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Objectives specific styling */
+.objective-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between objective input and remove button */
+}
+
+.objective-input {
+    flex-grow: 1; /* Allows objective input to take available space */
+}
+
+.remove-objective-button {
+    background-color: #dc3545; /* Red for remove button */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular button */
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.remove-objective-button:hover {
+    background-color: #c82333;
+}
+
+.add-objective-button {
+    background-color: #28a745; /* Green for add button */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px; /* Space above add button */
+}
+
+.add-objective-button:hover {
+    background-color: #218838;
+}
+
+/* Submission feedback */
+.error-message {
+    color: #d32f2f;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.success-message {
+    color: #28a745;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Submit button */
+.submit-button {
+    background-color: #007bff; /* Blue for submit button */
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    margin-top: 20px; /* Space above submit button */
+}
+
+.submit-button:hover:not(:disabled) {
+    background-color: #0056b3;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.submit-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .objectives-page-title {
+        font-size: 2rem;
+    }
+
+    .objectives-form-card {
+        padding: 25px;
+        gap: 15px;
+    }
+
+    .form-input,
+    .add-objective-button,
+    .submit-button {
+        font-size: 0.95rem;
+        padding: 10px 12px;
+    }
+
+    .submit-button {
+        padding: 12px 20px;
+    }
+}

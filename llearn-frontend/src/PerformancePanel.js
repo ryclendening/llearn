@@ -60,16 +60,18 @@ function PerformancePanel({ classId,userId }) {
 
 
 
-    return (
-        <div style={{
-            border: '1px solid #e0e0e0',
-            padding: '20px',
-            marginLeft: '20px',
-            width: '350px',
-            borderRadius: '8px',
-            backgroundColor: '#f9f9f9'
-        }}>
-            <h4 style={{ marginTop: 0, borderBottom: '2px solid #eee', paddingBottom: '10px' }}>Live Performance</h4>
+return (
+    <div style={{
+        border: '1px solid #ddd',
+        padding: '12px 16px',
+        borderRadius: '10px',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+    }}>
+            <h4 style={{ marginTop: 0, borderBottom: '2px solid #eee', paddingBottom: '10px' }}>{userId}</h4>
             
             {error && <p style={{ color: '#d32f2f' }}>{error}</p>}
             
@@ -78,13 +80,13 @@ function PerformancePanel({ classId,userId }) {
             {performance && performance.parsed_message && (
                 <div>
                     <h5>Objective Scores:</h5>
-                    <ul style={{paddingLeft: '0', listStyleType: 'none'}}>
+                    <ul style={{paddingLeft: '0', listStyleType: 'none',margin: '0', paddingTop:'8px'}}>
                         {/* 4. Map over the objectives array from state. */}
                         {lesson_objectives.map((objectiveText, index) => { // map just allows you to set variables that iterate over the array and do the function below
                             const scoreKey = `objective_${index + 1}`;
                             const score = performance.parsed_message[scoreKey];
                             return(
-                            <li key={objectiveText} style={{ marginBottom: '12px' }}>
+                            <li key={objectiveText} style={{ marginBottom: '12px', fontSize:'14px'}}>
                                 <span style={{ textTransform: 'capitalize' }}>{objectiveText}</span>
                                 {/* The outer container for the bar */}
                                 <div style={{

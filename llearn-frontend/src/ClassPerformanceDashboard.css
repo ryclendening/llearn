@@ -1,0 +1,56 @@
+/* ClassPerformanceDashboard.css */
+
+.dashboard-container {
+    padding: 40px 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa);
+    min-height: 100vh; /* Ensures the background covers the full height */
+    box-sizing: border-box; /* Include padding in the element's total width and height */
+}
+
+.dashboard-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #4a148c;
+    font-size: 2rem;
+}
+
+.performance-grid {
+    display: grid;
+    /* This is the core for responsive rows and auto-sizing: */
+    /* auto-fit: creates as many columns as possible based on the minmax size */
+    /* minmax(250px, 1fr): each column will be at least 250px, and then expand
+       equally (1fr) to fill available space. Adjust 250px as your desired minimum card width. */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px; /* Space between grid items */
+    padding: 10px; /* Padding inside the grid container */
+    /* Remove fixed height and overflow from here. Let the grid naturally grow. */
+}
+
+.performance-panel-wrapper {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 0; /* PerformancePanel already has its own padding, so no extra here */
+    cursor: pointer;
+    /* Ensure the wrapper takes full height of the grid cell if content is short */
+    display: flex;
+    flex-direction: column;
+}
+
+.performance-panel-wrapper:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Optional: Make PerformancePanel fill its wrapper */
+.performance-panel-wrapper > div {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Aligns content to the top */
+}
+
+/* Also, ensure your PerformancePanel.js has the `height: '75%'` removed from its outer div's inline style */
+/* The ClassPerformanceDashboard's grid will now manage its size naturally. */
