@@ -55,7 +55,7 @@ function PerformancePanel({ classId,userId }) {
             }
         };
         fetchObjectives();
-    }, [classId]); // and this is saying do it everytime the userId changes
+    }, [classId]); // and this is saying do it everytime the classId changes
 
 
 
