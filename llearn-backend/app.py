@@ -1,137 +1,169 @@
-from flask import Flask, request, jsonify
-from data import learning_objectives_store,active_assessors,active_students
-import Assessor
-import Student
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
+from graph import tutor_graph, TutorState
+from typing import Dict
+import uvicorn
+import json
+from configuration import config
+import random_lesson_gen
+app = FastAPI()
 
-# Declare the dict type
-app = Flask(__name__)
+# ── In-memory stores ───────────────────────────────────────────────────────────
+# These are lightweight now — no Student/Assessor objects, just metadata
 
-# In-memory storage for demo purposes
+learning_objectives_store: Dict[str, dict] = {
+    "science101": {
+        "title": "Introduction to planets",
+        "objectives": [
+            "Understand the number of planets in the solar system",
+            "Know the largest planet",
+            "Know the smallest planet",
+            "Demonstrate understanding of an orbit",
+        ],
+    }
+}
 
-json_error = {"error": "Request must be JSON"}
-@app.route('/api/learning-objectives', methods=['POST'])
-def add_learning_objectives():
-    if not request.is_json:
-        return jsonify(json_error), 400
-    
-    data = request.get_json()
+# Maps student_id → lesson_id (replaces active_students objects)
+student_registry: Dict[str, str] = {}
 
-    # Expecting JSON like:
-    # {
-    #   "lesson_id": "science101",
-    #   "title": "Introduction to plants",
-    #   "objectives": [
-    #       {"id": "obj1", "text": "Understand the number of planets"},
-    #       {"id": "obj2", "text": "Know the largest planet"}
-    #    ]
-    # }
+# Maps lesson_id → [student_ids]
+active_rosters: Dict[str, list] = {}
 
-    required_fields = ["lesson_id", "title", "objectives"]
-    for field in required_fields:
+
+# ── Learning Objectives ────────────────────────────────────────────────────────
+@app.get("/api/generate-objectives")
+async def generate_objectives(age: int, genre: str):
+    result = random_lesson_gen.run_graph(age, genre)
+    return result
+
+
+
+
+@app.post("/api/learning-objectives")
+async def add_learning_objectives(request: Request):
+    data = await request.json()
+    for field in ["lesson_id", "title", "objectives"]:
         if field not in data:
-            return jsonify({"error": f"Missing required field '{field}'"}), 400
+            raise HTTPException(status_code=400, detail=f"Missing required field '{field}'")
+    if not isinstance(data["objectives"], list) or not all(isinstance(o, str) for o in data["objectives"]):
+        raise HTTPException(status_code=400, detail="'objectives' must be a list of strings")
 
-    if not isinstance(data["objectives"], list):
-        return jsonify({"error": "'objectives' must be a list"}), 400
-
-    for obj in data["objectives"]:
-        if not isinstance(obj, str):
-            return jsonify({"error": "Each objective must be a string"}), 400
-
-    lesson_id = data["lesson_id"]
-    # Update or add the lesson entry
-    learning_objectives_store[lesson_id] = {
+    learning_objectives_store[data["lesson_id"]] = {
         "title": data["title"],
-        "objectives": data["objectives"]
+        "objectives": data["objectives"],
+    }
+    return {"message": f"Learning objectives for '{data['lesson_id']}' received", "count": len(data["objectives"])}
+
+
+@app.get("/api/learning-objectives")
+async def get_learning_objectives():
+    return learning_objectives_store
+
+
+# ── Student Management ─────────────────────────────────────────────────────────
+
+@app.post("/api/create-student")
+async def create_student(request: Request):
+    data = await request.json()
+    for field in ["user_id", "lesson_id"]:
+        if field not in data:
+            raise HTTPException(status_code=400, detail=f"Missing required field '{field}'")
+    if data["lesson_id"] not in learning_objectives_store:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    user_id, lesson_id = data["user_id"], data["lesson_id"]
+    student_registry[user_id] = lesson_id
+    active_rosters.setdefault(lesson_id, []).append(user_id)
+    return {"message": f"Student {user_id} created"}
+
+
+@app.get("/api/get-students")
+async def get_students():
+    return {"students": list(student_registry.keys())}
+
+
+@app.get("/api/get-roster/{lesson_id}")
+async def get_roster(lesson_id: str):
+    if lesson_id not in active_rosters:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return {"roster": active_rosters[lesson_id]}
+
+
+# ── Assessment ─────────────────────────────────────────────────────────────────
+
+@app.get("/api/performance/{user_id}")
+async def get_performance(user_id: str):
+    """Returns the most recent assessment for a student from checkpointed state."""
+    if user_id not in student_registry:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    config = {"configurable": {"thread_id": user_id}}
+    state = tutor_graph.get_state(config)
+
+    if not state or not state.values.get("assessment"):
+        return {"message": "No assessments found for student."}
+    print(state.values['assessment'])
+    return {
+        "student_id": user_id,
+        "assessment": state.values["assessment"],
+        "mastered": state.values["mastered"],
     }
 
-    return jsonify({
-        "message": f"Learning objectives for lesson '{lesson_id}' received",
-        "count": len(data["objectives"])
-    }), 200
 
-@app.route('/api/learning-objectives', methods=['GET'])
-def get_learning_objectives():
-    return jsonify(learning_objectives_store), 200
+# ── WebSocket Chat ─────────────────────────────────────────────────────────────
 
+@app.websocket("/ws/chat/{user_id}")
+async def websocket_chat(websocket: WebSocket, user_id: str):
+    await websocket.accept()
 
-@app.route('/api/create-student', methods=['POST'])
-def create_student():
-    if not request.is_json:
-        return jsonify(json_error), 400
-    
-    data = request.get_json()
-    required_fields = ["user_id", "lesson_id"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing required field '{field}'"}), 400  
+    if user_id not in student_registry:
+        await websocket.send_text("Student not found")
+        await websocket.close()
+        return
 
-  
-    active_students[data['user_id']]=(Student.StudentChat(user_id=data['user_id'], lesson_id= data['lesson_id']))
-    return jsonify({"message": f"Student {data['user_id']} created"}), 200
+    lesson_id = student_registry[user_id]
+    objectives = learning_objectives_store[lesson_id]["objectives"]
+    config = {"configurable": {"thread_id": user_id}}
 
+    # Seed initial state for this thread if it's a new session
+    existing = tutor_graph.get_state(config)
+    if not existing or not existing.values:
+        tutor_graph.update_state(config, {
+            "messages": [],
+            "student_id": user_id,
+            "lesson_id": lesson_id,
+            "objectives": objectives,
+            "assessment": {},
+            "mastered": False,
+        })
 
+    try:
+        while True:
+            message = await websocket.receive_text()
+            # Check if already mastered before processing
+            state = tutor_graph.get_state(config)
+            if state and state.values.get("mastered"):
+                await websocket.send_text("🎉 All objectives mastered! Session complete.")
+                break
 
-@app.route('/api/create-assessor', methods=['POST'])
-def create_assessor():
-    if not request.is_json:
-        return jsonify(json_error), 400
-    
-    data = request.get_json()
-    required_fields = ["class_id"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing required field '{field}'"}), 400  
-    class_id = data['class_id']
-    objectives= learning_objectives_store[class_id]
-    active_assessors[class_id]=(Assessor.AssessorChat(objectives=objectives,class_id=class_id))
-    return jsonify({"message": f"Asessor for {class_id} created"}), 200
+            # Only pass the new user message — checkpointer supplies the rest
+            result = tutor_graph.invoke(
+                {"messages": [{"role": "user", "content": message}]},
+                config=config,
+            )
 
+            # Send teacher's reply back to student
+            teacher_reply = result["messages"][-1]["content"]
+            await websocket.send_text(teacher_reply)
 
-@app.route('/api/performance/<user_id>', methods=['GET'])
-def get_performance(user_id):
-    print(active_students)
-    if user_id not in active_students:
-        return jsonify({"error": "Student not found"}), 404
-    student = active_students[user_id]
-    assessor = active_assessors[student.lesson_id]
-    logs=assessor.session_logs
-    print(logs)
-    most_recent_score={}
-    for score in reversed(logs):
-        if score['user_id'] == user_id:
-            most_recent_score = score
-            break
+            # Notify if just mastered
+            if result.get("mastered"):
+                await websocket.send_text("🎉 All objectives mastered! Session complete.")
+                break
 
-    return jsonify(most_recent_score)
+    except WebSocketDisconnect:
+        print(f"WebSocket disconnected for user: {user_id}")
 
 
-@app.route('/api/submit_chat/<user_id>', methods=['POST'])
-def submit_chat(user_id):
-    if not request.is_json:
-        return jsonify(json_error), 400
-    
-    data = request.get_json()
-    required_fields = ["message"]
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing required field '{field}'"}), 400  
-        
 
-    student = active_students[user_id]
-    response= student.send_new_message(data['message'])
-    return jsonify({"response": response}), 200
-
-
-@app.route('/api/assess_performance/<user_id>', methods=['GET'])
-def assess_performance(user_id):
- 
-
-    student = active_students[user_id]
-    assessor = active_assessors[student.lesson_id]
-    chat_history = student.chat_history
-    response= assessor.assess_performance(chat_history=chat_history,student_id= student.user_id)
-    return jsonify({"response": response}), 200
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

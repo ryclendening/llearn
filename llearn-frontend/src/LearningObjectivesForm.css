@@ -1,0 +1,259 @@
+/* LearningObjectivesForm.css */
+
+.objectives-page-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.objectives-page-title {
+    font-size: 2.5rem;
+    color: #4a148c;
+    margin-bottom: 30px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.objectives-form-card {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Generator section header ── */
+.objectives-form-card h2 {
+    font-size: 1.4rem;
+    color: #4a148c;
+    margin: 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 1.1rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.form-input {
+    padding: 12px 15px;
+    width: 100%;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* ── Generated plan preview card ── */
+.generated-preview {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background-color: #f8f4ff;
+    border: 1px solid #d1b8f5;
+    border-radius: 10px;
+}
+
+.generated-preview h3 {
+    font-size: 1.2rem;
+    color: #4a148c;
+    margin: 0 0 4px 0;
+}
+
+.generated-preview .lesson-id-label {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 12px;
+}
+
+.generated-preview ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+}
+
+.generated-preview ul li {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background-color: #ffffff;
+    border: 1px solid #e0d4f7;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.4;
+}
+
+.generated-preview ul li::before {
+    content: "✓ ";
+    color: #7c3aed;
+    font-weight: bold;
+}
+
+/* ── Preview action buttons row ── */
+.preview-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* Objectives specific styling */
+.objective-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.objective-input {
+    flex-grow: 1;
+}
+
+.remove-objective-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+.remove-objective-button:hover {
+    background-color: #c82333;
+}
+
+.add-objective-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+.add-objective-button:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+.add-objective-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* ── Discard button ── */
+.discard-button {
+    background-color: #ffffff;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.discard-button:hover {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+/* Submission feedback */
+.error-message {
+    color: #d32f2f;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.success-message {
+    color: #28a745;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Submit button */
+.submit-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    margin-top: 20px;
+}
+
+.submit-button:hover:not(:disabled) {
+    background-color: #0056b3;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.submit-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .objectives-page-title {
+        font-size: 2rem;
+    }
+
+    .objectives-form-card {
+        padding: 25px;
+        gap: 15px;
+    }
+
+    .form-input,
+    .add-objective-button,
+    .submit-button {
+        font-size: 0.95rem;
+        padding: 10px 12px;
+    }
+
+    .submit-button {
+        padding: 12px 20px;
+    }
+
+    .preview-actions {
+        flex-direction: column;
+    }
+}

@@ -1,86 +1,122 @@
 import requests
+import websockets
+import asyncio
 
-BASE_URL = "http://127.0.0.1:5000/api"
+BASE_URL = "http://127.0.0.1:8000/api"
+BASE_WS_URL = "ws://127.0.0.1:8000/ws/chat"
+
 
 def test_learning_objectives():
-    print("Testing POST /learning-objectives with valid data...")
+    print("\n── POST /learning-objectives ──")
     payload = {
         "lesson_id": "science101",
-        "title": "Introduction to plants",
+        "title": "Introduction to planets",
         "objectives": [
             "Understand the number of planets in the solar system",
             "Know the largest planet",
             "Know the smallest planet",
-            "Demonstrate understanding of an orbit"
-        ]
+            "Demonstrate understanding of an orbit",
+        ],
     }
     r = requests.post(f"{BASE_URL}/learning-objectives", json=payload)
     assert r.status_code == 200, r.text
-    print("POST /learning-objectives passed.")
+    print("✓ POST /learning-objectives passed")
 
-    print("Testing GET /learning-objectives...")
+    print("\n── GET /learning-objectives ──")
     r = requests.get(f"{BASE_URL}/learning-objectives")
     assert r.status_code == 200, r.text
-    data = r.json()
-    print(data)
-    assert "science101" in data, "science101 missing from learning objectives"
-    print("GET /learning-objectives passed.")
+    assert "science101" in r.json(), "science101 missing from learning objectives"
+    print("✓ GET /learning-objectives passed")
 
 
 def test_create_student():
-    print("Testing POST /create-student with valid data...")
+    print("\n── POST /create-student ──")
     payload = {"user_id": "student1", "lesson_id": "science101"}
     r = requests.post(f"{BASE_URL}/create-student", json=payload)
     assert r.status_code == 200, r.text
-    print("POST /create-student passed.")
+    print("✓ POST /create-student passed")
 
 
-def test_create_assessor():
-    print("Testing POST /create-assessor with valid data...")
-    payload = {"class_id": "science101"}
-    r = requests.post(f"{BASE_URL}/create-assessor", json=payload)
-    assert r.status_code == 200, r.text
-    print("POST /create-assessor passed.")
-
-
-
-def test_submit_chat(message):
-    print("Testing POST /submit_chat/student1...")
-    payload = {"message": message}
-    r = requests.post(f"{BASE_URL}/submit_chat/student1", json=payload)
+def test_get_students():
+    print("\n── GET /get-students ──")
+    r = requests.get(f"{BASE_URL}/get-students")
     assert r.status_code == 200, r.text
     data = r.json()
-    print("Submit chat response:", data)
-    assert "response" in data
-    print("POST /submit_chat passed.")
+    assert "student1" in data["students"], "student1 missing from students list"
+    print("✓ GET /get-students passed:", data)
 
-def test_assess_performance():
-    print("Testing GET /assess_performance/student1...")
-    r = requests.get(f"{BASE_URL}/assess_performance/student1")
+
+def test_get_roster():
+    print("\n── GET /get-roster/science101 ──")
+    r = requests.get(f"{BASE_URL}/get-roster/science101")
     assert r.status_code == 200, r.text
     data = r.json()
-    print("Assess performance response:", data)
-    assert "response" in data
-    print("GET /assess_performance passed.")
+    assert "student1" in data["roster"], "student1 missing from roster"
+    print("✓ GET /get-roster passed:", data)
+
+
+async def test_websocket_conversation():
+    """Send a few messages and verify the teacher responds each time."""
+    uri = f"{BASE_WS_URL}/student1"
+    print(f"\n── WebSocket conversation at {uri} ──")
+
+    messages = [
+        "Hi, I'm ready to learn!",
+        "How many planets are in the solar system?",
+        "What is the largest planet?",
+    ]
+    i = 0
+    async with websockets.connect(uri) as ws:
+        for msg in messages:
+            print(f"  → Sending: {msg}")
+            await ws.send(msg)
+            response = await ws.recv()
+            print(f"  ← Teacher: {response[:120]}{'...' if len(response) > 120 else ''}")
+            assert response, "Empty response from teacher"
+
+    print("✓ WebSocket conversation passed")
+
+
+async def test_convo():
+    """Send a few messages and verify the teacher responds each time."""
+    uri = f"{BASE_WS_URL}/student1"
+    print(f"\n── WebSocket conversation at {uri} ──")
+
+    messages = [
+        "Hi, I'm ready to learn!",
+        "How many planets are in the solar system?",
+        "What is the largest planet?",
+    ]
+    i = 0
+    async with websockets.connect(uri) as ws:
+        while i < 7:
+            msg = input()
+            await ws.send(msg)
+            response = await ws.recv()
+            print(f"  ← Teacher: {response[:120]}{'...' if len(response) > 120 else ''}")
+            assert response, "Empty response from teacher"
+            i+=1
+    print("✓ WebSocket conversation passed")
 
 def test_get_performance():
-    print("Testing GET /performance/student1...")
+    print("\n── GET /performance/student1 ──")
     r = requests.get(f"{BASE_URL}/performance/student1")
-    # This may return 404 if no assessments have been logged yet.
     if r.status_code == 404:
-        print("No performance data found yet (expected if no assessments run).")
+        print("No performance data yet (run more chat turns first)")
     else:
         assert r.status_code == 200, r.text
         data = r.json()
-        print("Performance data:", data)
-    print("GET /performance passed.")
+        print("  Assessment:", data.get("assessment"))
+        print("  Mastered:", data.get("mastered"))
+        print("✓ GET /performance passed")
+
 
 if __name__ == "__main__":
     test_learning_objectives()
     test_create_student()
-    test_create_assessor()
-    test_submit_chat('hello there')
-    test_assess_performance()
+    test_get_students()
+    test_get_roster()
+   # asyncio.run(test_websocket_conversation())
     test_get_performance()
-
-    print("All tests done.")
+    print("\n✓ All tests done.")
+    asyncio.run(test_convo())

@@ -1,0 +1,168 @@
+.chat-page-container {
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa); /* Light blue gradient background */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content horizontally */
+}
+
+.chat-page-title {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #4a148c; /* Dark purple for the title */
+    font-size: 2rem;
+    padding-top: 20px; /* Add some space from the top of the page */
+}
+
+.chat-main-content {
+    display: flex;
+    flex-direction: row; /* Default: horizontal layout */
+    height: 80vh; /* Adjust height as needed */
+    width: 100%; /* Take full width of parent */
+    max-width: 1200px; /* Max width like the dashboard */
+    margin: 0 auto; /* Center the main content area */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Subtle shadow for the whole content area */
+    border-radius: 12px;
+    overflow: hidden; /* Ensures rounded corners are applied to children */
+    background-color: #fff; /* White background for the main content block */
+}
+
+.chat-panel {
+    flex: 1; /* Takes equal space */
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #eee; /* Separator between panels */
+    border-radius: 8px; /* Apply rounded corners to the panel itself */
+    overflow: hidden; /* Ensure content inside respects rounded corners */
+}
+
+/* Chat messages area */
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #fcfdff; /* Slightly off-white for chat background */
+}
+
+.chat-message p {
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.chat-message strong {
+    font-weight: bold;
+}
+
+.chat-message.system strong {
+    color: #00796b; /* Green for system messages */
+}
+
+.chat-message.you strong {
+    color: #007bff; /* Blue for your messages */
+}
+
+.chat-message.bot strong {
+    color: #8a2be2; /* A shade of purple for bot messages */
+}
+
+/* Chat input area */
+.chat-input-area {
+    display: flex;
+    border-top: 1px solid #eee;
+    padding: 15px;
+    background-color: #f9f9f9; /* Light grey for input area */
+}
+
+.chat-input-area input[type="text"] {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    outline: none; /* Remove default focus outline */
+    transition: border-color 0.3s ease;
+}
+
+.chat-input-area input[type="text"]:focus {
+    border-color: #007bff; /* Blue border on focus */
+}
+
+.chat-input-area button {
+    padding: 12px 25px;
+    font-size: 16px;
+    margin-left: 10px;
+    cursor: pointer;
+    background-color: #007bff; /* Blue send button */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.chat-input-area button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+.chat-input-area button:active {
+    transform: translateY(1px); /* Slight press effect */
+}
+
+
+/* Performance Panel (Right Side) */
+.performance-panel-area {
+    width: 350px; /* Fixed width for the performance panel */
+    flex-shrink: 0; /* Prevent it from shrinking */
+    padding: 15px;
+    background-color: #f7f9fc; /* Slightly different background for distinction */
+    display: flex;
+    flex-direction: column;
+    /* Apply a similar card style to integrate it better */
+    border-radius: 8px; /* Match the chat panel's rounded corners */
+}
+
+/* Make the PerformancePanel itself fill its space */
+.performance-panel-area > div {
+    flex-grow: 1; /* Allow the PerformancePanel component to grow */
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .chat-main-content {
+        flex-direction: column; /* Stack panels vertically on smaller screens */
+        height: auto; /* Let content dictate height */
+    }
+
+    .chat-panel {
+        border-right: none; /* Remove vertical separator */
+        border-bottom: 1px solid #eee; /* Add horizontal separator */
+    }
+
+    .performance-panel-area {
+        width: auto; /* Allow performance panel to take full width */
+        border-top: 1px solid #eee; /* Separator when stacked */
+        border-radius: 0; /* Remove specific border radius here to blend */
+    }
+}
+
+@media (max-width: 600px) {
+    .chat-page-container {
+        padding: 10px;
+    }
+
+    .chat-page-title {
+        font-size: 1.5rem;
+    }
+
+    .chat-input-area {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .chat-input-area button {
+        margin-left: 0;
+        width: 100%;
+    }
+}
