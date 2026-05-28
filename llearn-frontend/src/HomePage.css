@@ -1,0 +1,228 @@
+/* HomePage.css */
+
+.homepage-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center vertically */
+    align-items: center; /* Center horizontally */
+    min-height: 100vh; /* Take full viewport height */
+    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa); /* Consistent gradient background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative; /* Needed for positioning the dropdown */
+}
+
+.homepage-title {
+    font-size: 2.5rem; /* Larger title */
+    color: #4a148c; /* Dark purple, consistent with other titles */
+    margin-bottom: 30px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05); /* Subtle text shadow */
+}
+
+.join-form {
+    display: flex;
+    flex-direction: column; /* Stack input and button on smaller screens */
+    gap: 15px; /* Space between form elements */
+    background-color: #ffffff; /* White background for the form container */
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* More pronounced shadow for a card effect */
+    max-width: 450px; /* Limit form width */
+    width: 100%; /* Make it responsive */
+    box-sizing: border-box;
+    align-items: center; /* Center form elements */
+}
+
+.class-code-input {
+    padding: 12px 15px;
+    width: 100%; /* Take full width of its container */
+    font-size: 1.1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px; /* Rounded corners */
+    outline: none; /* Remove default focus outline */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box; /* Include padding in element's total width and height */
+}
+
+.class-code-input::placeholder {
+    color: #999;
+}
+
+.class-code-input:focus {
+    border-color: #007bff; /* Blue border on focus */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Subtle blue glow on focus */
+}
+
+.join-button {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    background-color: #007bff; /* Blue button, consistent */
+    color: white;
+    border: none;
+    border-radius: 8px; /* Rounded corners */
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+    width: 100%; /* Take full width of its container */
+}
+
+.join-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.join-button:active {
+    transform: translateY(1px); /* Slight press effect */
+}
+
+.error-message {
+    color: #d32f2f; /* Red for errors */
+    margin-top: 15px;
+    font-size: 0.95rem;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Styles for Active Dashboards section */
+.active-dashboards-section {
+    margin-top: 40px; /* Space above this section */
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Slightly lighter shadow */
+    max-width: 450px;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.active-dashboards-title {
+    font-size: 1.8rem;
+    color: #00796b; /* Greenish-blue, consistent with classId color */
+    margin-bottom: 20px;
+}
+
+.active-dashboards-list {
+    list-style: none; /* Remove bullet points */
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between list items */
+}
+
+.active-dashboards-list li {
+    margin: 0;
+}
+
+.dashboard-link-button {
+    background-color: #e0f7fa; /* Light blue background for links */
+    color: #00796b; /* Greenish-blue text */
+    border: 1px solid #b2ebf2; /* Light border */
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%; /* Full width button */
+    text-align: center;
+    text-decoration: none; /* Remove underline for links */
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+    display: block; /* Make it a block element to apply full width */
+}
+
+.dashboard-link-button:hover {
+    background-color: #b2ebf2; /* Darker blue on hover */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.dashboard-link-button:active {
+    transform: translateY(0);
+}
+
+.no-dashboards-message {
+    color: #666;
+    font-style: italic;
+    margin-top: 10px;
+}
+
+/* New styles for the top dropdown menu */
+.top-navigation-container {
+    position: absolute; /* Position relative to homepage-container */
+    top: 20px; /* Adjust as needed */
+    right: 20px; /* Adjust as needed */
+    z-index: 1000; /* Ensure it's above other content */
+}
+
+.dropdown-toggle-button {
+    background-color: #4a148c; /* Dark purple, consistent */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dropdown-toggle-button:hover {
+    background-color: #6a1b9a; /* Lighter purple on hover */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-arrow {
+    font-size: 0.8em;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%; /* Position below the button */
+    right: 0; /* Align to the right of the button */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    min-width: 220px; /* Minimum width for the dropdown */
+    padding: 10px 0;
+    margin-top: 10px; /* Space between button and dropdown */
+    list-style: none;
+    z-index: 1000; /* Ensure it's above other content */
+}
+
+.dropdown-menu-item {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    width: 100%;
+    text-align: left;
+    font-size: 1rem;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: block; /* Make it fill the width */
+}
+
+.dropdown-menu-item:hover {
+    background-color: #f0f8ff; /* Light blue hover effect */
+    color: #007bff; /* Blue text on hover */
+}
+
+
+/* Responsive adjustments */
+@media (min-width: 600px) {
+    .join-form {
+        flex-direction: row; /* Horizontal layout on wider screens */
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .class-code-input {
+        width: 300px; /* Specific width on wider screens */
+    }
+
+    .join-button {
+        width: auto; /* Auto width on wider screens */
+    }
+}
