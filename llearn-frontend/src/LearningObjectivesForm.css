@@ -3,10 +3,10 @@
 .objectives-page-container {
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Center vertically */
-    align-items: center; /* Center horizontally */
-    min-height: 100vh; /* Take full viewport height */
-    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa); /* Consistent gradient background */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
     box-sizing: border-box;
@@ -14,7 +14,7 @@
 
 .objectives-page-title {
     font-size: 2.5rem;
-    color: #4a148c; /* Dark purple, consistent with other titles */
+    color: #4a148c;
     margin-bottom: 30px;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
 }
@@ -23,19 +23,28 @@
     background-color: #ffffff;
     padding: 40px;
     border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Card-like shadow */
-    max-width: 600px; /* Max width for the form */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
     width: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Space between form groups */
+    gap: 20px;
+}
+
+/* ── Generator section header ── */
+.objectives-form-card h2 {
+    font-size: 1.4rem;
+    color: #4a148c;
+    margin: 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Space between label and input */
+    gap: 8px;
 }
 
 .form-group label {
@@ -60,22 +69,73 @@
     box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
+/* ── Generated plan preview card ── */
+.generated-preview {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background-color: #f8f4ff;
+    border: 1px solid #d1b8f5;
+    border-radius: 10px;
+}
+
+.generated-preview h3 {
+    font-size: 1.2rem;
+    color: #4a148c;
+    margin: 0 0 4px 0;
+}
+
+.generated-preview .lesson-id-label {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 12px;
+}
+
+.generated-preview ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem 0;
+}
+
+.generated-preview ul li {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background-color: #ffffff;
+    border: 1px solid #e0d4f7;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #333;
+    line-height: 1.4;
+}
+
+.generated-preview ul li::before {
+    content: "✓ ";
+    color: #7c3aed;
+    font-weight: bold;
+}
+
+/* ── Preview action buttons row ── */
+.preview-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 /* Objectives specific styling */
 .objective-input-row {
     display: flex;
     align-items: center;
-    gap: 10px; /* Space between objective input and remove button */
+    gap: 10px;
 }
 
 .objective-input {
-    flex-grow: 1; /* Allows objective input to take available space */
+    flex-grow: 1;
 }
 
 .remove-objective-button {
-    background-color: #dc3545; /* Red for remove button */
+    background-color: #dc3545;
     color: white;
     border: none;
-    border-radius: 50%; /* Circular button */
+    border-radius: 50%;
     width: 30px;
     height: 30px;
     display: flex;
@@ -84,7 +144,7 @@
     font-size: 1.2rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    flex-shrink: 0; /* Prevent button from shrinking */
+    flex-shrink: 0;
 }
 
 .remove-objective-button:hover {
@@ -92,7 +152,7 @@
 }
 
 .add-objective-button {
-    background-color: #28a745; /* Green for add button */
+    background-color: #28a745;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -100,11 +160,33 @@
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    margin-top: 10px; /* Space above add button */
+    margin-top: 10px;
 }
 
-.add-objective-button:hover {
+.add-objective-button:hover:not(:disabled) {
     background-color: #218838;
+}
+
+.add-objective-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* ── Discard button ── */
+.discard-button {
+    background-color: #ffffff;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.discard-button:hover {
+    background-color: #dc3545;
+    color: #ffffff;
 }
 
 /* Submission feedback */
@@ -124,7 +206,7 @@
 
 /* Submit button */
 .submit-button {
-    background-color: #007bff; /* Blue for submit button */
+    background-color: #007bff;
     color: white;
     border: none;
     padding: 15px 30px;
@@ -132,7 +214,7 @@
     font-size: 1.2rem;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.1s ease;
-    margin-top: 20px; /* Space above submit button */
+    margin-top: 20px;
 }
 
 .submit-button:hover:not(:disabled) {
@@ -149,7 +231,7 @@
     cursor: not-allowed;
 }
 
-/* Responsive adjustments */
+/* ── Responsive ── */
 @media (max-width: 600px) {
     .objectives-page-title {
         font-size: 2rem;
@@ -169,5 +251,9 @@
 
     .submit-button {
         padding: 12px 20px;
+    }
+
+    .preview-actions {
+        flex-direction: column;
     }
 }

@@ -1,132 +1,169 @@
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import JSONResponse
-from data import learning_objectives_store, active_assessors, active_students, active_rosters
-import Assessor
-import Student
-
+from graph import tutor_graph, TutorState
+from typing import Dict
+import uvicorn
+import json
+from configuration import config
+import random_lesson_gen
 app = FastAPI()
-json_error = {"error": "Request must be JSON"}
+
+# ── In-memory stores ───────────────────────────────────────────────────────────
+# These are lightweight now — no Student/Assessor objects, just metadata
+
+learning_objectives_store: Dict[str, dict] = {
+    "science101": {
+        "title": "Introduction to planets",
+        "objectives": [
+            "Understand the number of planets in the solar system",
+            "Know the largest planet",
+            "Know the smallest planet",
+            "Demonstrate understanding of an orbit",
+        ],
+    }
+}
+
+# Maps student_id → lesson_id (replaces active_students objects)
+student_registry: Dict[str, str] = {}
+
+# Maps lesson_id → [student_ids]
+active_rosters: Dict[str, list] = {}
+
+
+# ── Learning Objectives ────────────────────────────────────────────────────────
+@app.get("/api/generate-objectives")
+async def generate_objectives(age: int, genre: str):
+    result = random_lesson_gen.run_graph(age, genre)
+    return result
+
+
+
 
 @app.post("/api/learning-objectives")
 async def add_learning_objectives(request: Request):
     data = await request.json()
-    required_fields = ["lesson_id", "title", "objectives"]
-    for field in required_fields:
+    for field in ["lesson_id", "title", "objectives"]:
         if field not in data:
             raise HTTPException(status_code=400, detail=f"Missing required field '{field}'")
+    if not isinstance(data["objectives"], list) or not all(isinstance(o, str) for o in data["objectives"]):
+        raise HTTPException(status_code=400, detail="'objectives' must be a list of strings")
 
-    if not isinstance(data["objectives"], list):
-        raise HTTPException(status_code=400, detail="'objectives' must be a list")
-
-    for obj in data["objectives"]:
-        if not isinstance(obj, str):
-            raise HTTPException(status_code=400, detail="Each objective must be a string")
-
-    lesson_id = data["lesson_id"]
-    learning_objectives_store[lesson_id] = {
+    learning_objectives_store[data["lesson_id"]] = {
         "title": data["title"],
-        "objectives": data["objectives"]
+        "objectives": data["objectives"],
     }
+    return {"message": f"Learning objectives for '{data['lesson_id']}' received", "count": len(data["objectives"])}
 
-    return {"message": f"Learning objectives for lesson '{lesson_id}' received", "count": len(data["objectives"])}
 
 @app.get("/api/learning-objectives")
 async def get_learning_objectives():
     return learning_objectives_store
 
+
+# ── Student Management ─────────────────────────────────────────────────────────
+
 @app.post("/api/create-student")
 async def create_student(request: Request):
     data = await request.json()
-    required_fields = ["user_id", "lesson_id"]
-    for field in required_fields:
+    for field in ["user_id", "lesson_id"]:
         if field not in data:
             raise HTTPException(status_code=400, detail=f"Missing required field '{field}'")
-        
-    if data['lesson_id'] not in active_rosters: # check if list exists
-        active_rosters[data['lesson_id']]=[]
-    active_rosters[data['lesson_id']].append(data['user_id']) # add user to lesson_id list
+    if data["lesson_id"] not in learning_objectives_store:
+        raise HTTPException(status_code=404, detail="Lesson not found")
 
-    active_students[data['user_id']] = Student.StudentChat(user_id=data['user_id'], lesson_id=data['lesson_id'])
-    return {"message": f"Student {data['user_id']} created"}
-
-@app.post("/api/create-assessor")
-async def create_assessor(request: Request):
-    data = await request.json()
-    if "class_id" not in data:
-        raise HTTPException(status_code=400, detail="Missing required field 'class_id'")
-
-    class_id = data["class_id"]
-    if class_id not in learning_objectives_store:
-        raise HTTPException(status_code=404, detail="Class not found in learning objectives store")
-
-    objectives = learning_objectives_store[class_id]["objectives"]
-    active_assessors[class_id] = Assessor.AssessorChat(objectives=objectives, class_id=class_id)
-    return {"message": f"Assessor for {class_id} created"}
-
-
-@app.get("/api/get-assessors")
-async def get_assessors():
-    return {"active_lessons": list(active_assessors.keys())}
-
-@app.get("/api/get-roster/{lesson_id}")
-async def get_roster(lesson_id: str):
-    if lesson_id not in active_rosters: # check if list exists
-         raise HTTPException(status_code=404, detail="Lesson not found")
-
-    active_rosters[lesson_id]
-    return {"roster": active_rosters[lesson_id]}
+    user_id, lesson_id = data["user_id"], data["lesson_id"]
+    student_registry[user_id] = lesson_id
+    active_rosters.setdefault(lesson_id, []).append(user_id)
+    return {"message": f"Student {user_id} created"}
 
 
 @app.get("/api/get-students")
 async def get_students():
-    return {"students": list(active_students.keys())}
+    return {"students": list(student_registry.keys())}
 
 
+@app.get("/api/get-roster/{lesson_id}")
+async def get_roster(lesson_id: str):
+    if lesson_id not in active_rosters:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return {"roster": active_rosters[lesson_id]}
 
+
+# ── Assessment ─────────────────────────────────────────────────────────────────
 
 @app.get("/api/performance/{user_id}")
 async def get_performance(user_id: str):
-    if user_id not in active_students:
+    """Returns the most recent assessment for a student from checkpointed state."""
+    if user_id not in student_registry:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    if not active_assessors:
-        raise HTTPException(status_code=404, detail="No assessors found")
-    student = active_students[user_id]
-    assessor = active_assessors[student.lesson_id]
-    logs = assessor.session_logs
-    for score in reversed(logs):
-        if score["user_id"] == user_id:
-            return score
+    config = {"configurable": {"thread_id": user_id}}
+    state = tutor_graph.get_state(config)
 
-    return {"message": "No assessments found for student."}
+    if not state or not state.values.get("assessment"):
+        return {"message": "No assessments found for student."}
+    print(state.values['assessment'])
+    return {
+        "student_id": user_id,
+        "assessment": state.values["assessment"],
+        "mastered": state.values["mastered"],
+    }
 
-@app.get("/api/assess_performance/{user_id}")
-async def assess_performance(user_id: str):
-    student = active_students.get(user_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
 
-    assessor = active_assessors.get(student.lesson_id)
-    if not assessor:
-        raise HTTPException(status_code=404, detail="Assessor not found for student lesson")
-
-    response = assessor.assess_performance(chat_history=student.chat_history, student_id=user_id)
-    return {"response": response}
-
+# ── WebSocket Chat ─────────────────────────────────────────────────────────────
 
 @app.websocket("/ws/chat/{user_id}")
 async def websocket_chat(websocket: WebSocket, user_id: str):
     await websocket.accept()
-    if user_id not in active_students:
+
+    if user_id not in student_registry:
         await websocket.send_text("Student not found")
         await websocket.close()
         return
 
-    student = active_students[user_id]
+    lesson_id = student_registry[user_id]
+    objectives = learning_objectives_store[lesson_id]["objectives"]
+    config = {"configurable": {"thread_id": user_id}}
+
+    # Seed initial state for this thread if it's a new session
+    existing = tutor_graph.get_state(config)
+    if not existing or not existing.values:
+        tutor_graph.update_state(config, {
+            "messages": [],
+            "student_id": user_id,
+            "lesson_id": lesson_id,
+            "objectives": objectives,
+            "assessment": {},
+            "mastered": False,
+        })
+
     try:
         while True:
             message = await websocket.receive_text()
-            response = student.send_new_message(message)
-            await websocket.send_text(response)
+            # Check if already mastered before processing
+            state = tutor_graph.get_state(config)
+            if state and state.values.get("mastered"):
+                await websocket.send_text("🎉 All objectives mastered! Session complete.")
+                break
+
+            # Only pass the new user message — checkpointer supplies the rest
+            result = tutor_graph.invoke(
+                {"messages": [{"role": "user", "content": message}]},
+                config=config,
+            )
+
+            # Send teacher's reply back to student
+            teacher_reply = result["messages"][-1]["content"]
+            await websocket.send_text(teacher_reply)
+
+            # Notify if just mastered
+            if result.get("mastered"):
+                await websocket.send_text("🎉 All objectives mastered! Session complete.")
+                break
+
     except WebSocketDisconnect:
         print(f"WebSocket disconnected for user: {user_id}")
+
+
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

@@ -11,6 +11,25 @@ function PerformancePanel({ classId,userId }) {
     const [performance, setPerformance] = useState(null); // special in memory function (in this case, set performance) that allows you to store data in performance
     const [error, setError] = useState('');
     const [lesson_objectives, setObjectives] = useState([])
+
+    const normalizeScoreToPercent = (score) => {
+        // Backend has historically returned objective scores in a few shapes:
+        // - 0/1
+        // - boolean
+        // - 0..1
+        // - 0..100
+        if (score === true) return 100;
+        if (score === false) return 0;
+        const n = Number(score);
+        if (!Number.isFinite(n)) return 0;
+        if (n <= 1 && n >= 0) return Math.round(n * 100);
+        return Math.max(0, Math.min(100, Math.round(n)));
+    };
+
+    const assessment =
+        (performance && (performance.parsed_message || performance.assessment)) ||
+        null;
+
     useEffect(() => { // useEffect tells react what to run-post render, this is literally just saying do an API call
         const fetchPerformance = async () => {
             try {
@@ -30,7 +49,7 @@ function PerformancePanel({ classId,userId }) {
             }
         };
         fetchPerformance();
-        const intervalId = setInterval(fetchPerformance, 5000);
+        const intervalId = setInterval(fetchPerformance, 10000);
         return () => clearInterval(intervalId);
     }, [userId]); // and this is saying do it everytime the userId changes
 
@@ -46,12 +65,13 @@ function PerformancePanel({ classId,userId }) {
                     throw new Error(errorData.detail || 'Could not fetch objectives data.');
                 }
                 const data = await response.json();
-                setObjectives(data[classId].objectives);
+                const objectives = data?.[classId]?.objectives;
+                setObjectives(Array.isArray(objectives) ? objectives : []);
                 setError('');
             } catch (err) {
                 console.error("Performance fetch error:", err);
                 setError('Failed to load objectives. No assessments may be available yet.');
-                setObjectives(null);
+                setObjectives([]);
             }
         };
         fetchObjectives();
@@ -77,14 +97,15 @@ return (
             
             {!performance && !error && <p>Loading performance data...</p>}
 
-            {performance && performance.parsed_message && (
+            {performance && assessment && (
                 <div>
                     <h5>Objective Scores:</h5>
                     <ul style={{paddingLeft: '0', listStyleType: 'none',margin: '0', paddingTop:'8px'}}>
                         {/* 4. Map over the objectives array from state. */}
-                        {lesson_objectives.map((objectiveText, index) => { // map just allows you to set variables that iterate over the array and do the function below
+                        {(Array.isArray(lesson_objectives) ? lesson_objectives : []).map((objectiveText, index) => { // map just allows you to set variables that iterate over the array and do the function below
                             const scoreKey = `objective_${index + 1}`;
-                            const score = performance.parsed_message[scoreKey];
+                            const score = assessment?.[scoreKey];
+                            const pct = normalizeScoreToPercent(score);
                             return(
                             <li key={objectiveText} style={{ marginBottom: '12px', fontSize:'14px'}}>
                                 <span style={{ textTransform: 'capitalize' }}>{objectiveText}</span>
@@ -99,8 +120,7 @@ return (
                                     {/* The inner "fill" of the bar */}
                                     <div style={{
                                         height: '100%',
-                                        // This is the key: width is 100% if score is 1, otherwise 0%
-                                        width: score === 1 ? '100%' : '0%',
+                                        width: `${pct}%`,
                                         backgroundColor: '#28a745', // Green for "complete"
                                         borderRadius: '5px',
                                         // A smooth transition effect for the fill
@@ -111,6 +131,11 @@ return (
                             </li>
                         )})}
                     </ul>
+                    {performance.mastered === true && (
+                        <p style={{ marginTop: '10px', color: '#2e7d32' }}>
+                            All objectives mastered.
+                        </p>
+                    )}
                 </div>
             )}
             {/* This handles cases where the API returns a message like "No assessments found" */}

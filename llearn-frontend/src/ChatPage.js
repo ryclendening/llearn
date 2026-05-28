@@ -53,7 +53,7 @@ function ChatPage() {
             setInput('');
         }
         try {
-            const response = await fetch(`/api/assess_performance/${userId}`, {
+            const response = await fetch(`/api/performance/${userId}`, {
                 method: 'GET'
             });
 

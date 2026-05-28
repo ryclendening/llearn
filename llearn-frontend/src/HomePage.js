@@ -14,15 +14,15 @@ function HomePage() {
         const fetchActiveClasses = async () => {
             try {
                 // Assuming an API endpoint that returns a list of active class IDs
-                const response = await fetch('/api/get-assessors'); // Changed endpoint as per user's provided code
+                const response = await fetch('/api/learning-objectives'); // Changed endpoint as per user's provided code
                 if (!response.ok) {
                     throw new Error('Failed to fetch active classes.');
                 }
                 const data = await response.json();
                 // Assuming data.active_lessons is an array of class IDs
-                setActiveClasses(data.active_lessons || []); // Changed data key as per user's provided code
+                setActiveClasses(Object.keys(data) || []); // Changed data key as per user's provided code
                 // You can also console.log here for debugging in the console
-                console.log('Fetched active classes:', data.active_lessons);
+                console.log('Fetched active classes:', activeClasses);
             } catch (err) {
                 console.error("Error fetching active classes:", err);
                 // Optionally set an error for the active classes section
