@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: llearn-postgres
+    environment:
+      POSTGRES_DB: llearn
+      POSTGRES_USER: llearn
+      POSTGRES_PASSWORD: llearn
+    ports:
+      - "5432:5432"
+    volumes:
+      - llearn-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llearn -d llearn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  llearn-postgres-data:

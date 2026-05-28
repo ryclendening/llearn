@@ -1,36 +1,39 @@
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from graph import tutor_graph, TutorState
-from typing import Dict
+from sqlalchemy.orm import Session
 import uvicorn
-import json
 import random_lesson_gen
+import models
+from crud import (
+    add_message,
+    create_chat_session,
+    create_student_enrollment,
+    get_latest_assessment,
+    get_lesson,
+    get_roster as get_roster_from_db,
+    get_student,
+    get_student_lesson_id,
+    lesson_to_payload,
+    list_lessons,
+    list_student_ids,
+    save_assessment,
+    seed_default_lesson,
+    upsert_lesson,
+)
+from database import Base, SessionLocal, engine, get_db
 
 app = FastAPI()
 
-# ── In-memory stores ───────────────────────────────────────────────────────────
-# These are lightweight now — no Student/Assessor objects, just metadata
 
-learning_objectives_store: Dict[str, dict] = {
-    "science101": {
-        "title": "Introduction to planets",
-        "objectives": [
-            "Understand the number of planets in the solar system",
-            "Know the largest planet",
-            "Know the smallest planet",
-            "Demonstrate understanding of an orbit",
-        ],
-    }
-}
-
-# Maps student_id → lesson_id (replaces active_students objects)
-student_registry: Dict[str, str] = {}
-
-# Maps lesson_id → [student_ids]
-active_rosters: Dict[str, list] = {}
+@app.on_event("startup")
+def initialize_database():
+    Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        seed_default_lesson(db)
 
 
 # ── Learning Objectives ────────────────────────────────────────────────────────
@@ -43,7 +46,7 @@ async def generate_objectives(age: int, genre: str):
 
 
 @app.post("/api/learning-objectives")
-async def add_learning_objectives(request: Request):
+async def add_learning_objectives(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     for field in ["lesson_id", "title", "objectives"]:
         if field not in data:
@@ -51,65 +54,64 @@ async def add_learning_objectives(request: Request):
     if not isinstance(data["objectives"], list) or not all(isinstance(o, str) for o in data["objectives"]):
         raise HTTPException(status_code=400, detail="'objectives' must be a list of strings")
 
-    learning_objectives_store[data["lesson_id"]] = {
-        "title": data["title"],
-        "objectives": data["objectives"],
-    }
+    upsert_lesson(
+        db,
+        lesson_id=data["lesson_id"],
+        title=data["title"],
+        objectives=data["objectives"],
+    )
     return {"message": f"Learning objectives for '{data['lesson_id']}' received", "count": len(data["objectives"])}
 
 
 @app.get("/api/learning-objectives")
-async def get_learning_objectives():
-    return learning_objectives_store
+async def get_learning_objectives(db: Session = Depends(get_db)):
+    return {lesson.id: lesson_to_payload(lesson) for lesson in list_lessons(db)}
 
 
 # ── Student Management ─────────────────────────────────────────────────────────
 
 @app.post("/api/create-student")
-async def create_student(request: Request):
+async def create_student(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     for field in ["user_id", "lesson_id"]:
         if field not in data:
             raise HTTPException(status_code=400, detail=f"Missing required field '{field}'")
-    if data["lesson_id"] not in learning_objectives_store:
+    try:
+        create_student_enrollment(db, student_id=data["user_id"], lesson_id=data["lesson_id"])
+    except ValueError:
         raise HTTPException(status_code=404, detail="Lesson not found")
-
-    user_id, lesson_id = data["user_id"], data["lesson_id"]
-    student_registry[user_id] = lesson_id
-    active_rosters.setdefault(lesson_id, []).append(user_id)
-    return {"message": f"Student {user_id} created"}
+    return {"message": f"Student {data['user_id']} created"}
 
 
 @app.get("/api/get-students")
-async def get_students():
-    return {"students": list(student_registry.keys())}
+async def get_students(db: Session = Depends(get_db)):
+    return {"students": list_student_ids(db)}
 
 
 @app.get("/api/get-roster/{lesson_id}")
-async def get_roster(lesson_id: str):
-    if lesson_id not in active_rosters:
+async def get_roster(lesson_id: str, db: Session = Depends(get_db)):
+    roster = get_roster_from_db(db, lesson_id)
+    if roster is None:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return {"roster": active_rosters[lesson_id]}
+    return {"roster": roster}
 
 
 # ── Assessment ─────────────────────────────────────────────────────────────────
 
 @app.get("/api/performance/{user_id}")
-async def get_performance(user_id: str):
-    """Returns the most recent assessment for a student from checkpointed state."""
-    if user_id not in student_registry:
+async def get_performance(user_id: str, db: Session = Depends(get_db)):
+    """Returns the most recent persisted assessment for a student."""
+    if not get_student(db, user_id):
         raise HTTPException(status_code=404, detail="Student not found")
 
-    config = {"configurable": {"thread_id": user_id}}
-    state = tutor_graph.get_state(config)
-
-    if not state or not state.values.get("assessment"):
+    assessment = get_latest_assessment(db, user_id)
+    if not assessment:
         return {"message": "No assessments found for student."}
-    print(state.values['assessment'])
+
     return {
         "student_id": user_id,
-        "assessment": state.values["assessment"],
-        "mastered": state.values["mastered"],
+        "assessment": assessment.scores,
+        "mastered": assessment.mastered,
     }
 
 
@@ -119,53 +121,74 @@ async def get_performance(user_id: str):
 async def websocket_chat(websocket: WebSocket, user_id: str):
     await websocket.accept()
 
-    if user_id not in student_registry:
-        await websocket.send_text("Student not found")
-        await websocket.close()
-        return
-
-    lesson_id = student_registry[user_id]
-    objectives = learning_objectives_store[lesson_id]["objectives"]
-    config = {"configurable": {"thread_id": user_id}}
-
-    # Seed initial state for this thread if it's a new session
-    existing = tutor_graph.get_state(config)
-    if not existing or not existing.values:
-        tutor_graph.update_state(config, {
-            "messages": [],
-            "student_id": user_id,
-            "lesson_id": lesson_id,
-            "objectives": objectives,
-            "assessment": {},
-            "mastered": False,
-        })
-
+    db = SessionLocal()
     try:
-        while True:
-            message = await websocket.receive_text()
-            # Check if already mastered before processing
-            state = tutor_graph.get_state(config)
-            if state and state.values.get("mastered"):
-                await websocket.send_text("🎉 All objectives mastered! Session complete.")
-                break
+        lesson_id = get_student_lesson_id(db, user_id)
+        if not lesson_id:
+            await websocket.send_text("Student not found")
+            await websocket.close()
+            return
 
-            # Only pass the new user message — checkpointer supplies the rest
-            result = tutor_graph.invoke(
-                {"messages": [{"role": "user", "content": message}]},
-                config=config,
-            )
+        lesson = get_lesson(db, lesson_id)
+        if not lesson:
+            await websocket.send_text("Lesson not found")
+            await websocket.close()
+            return
 
-            # Send teacher's reply back to student
-            teacher_reply = result["messages"][-1]["content"]
-            await websocket.send_text(teacher_reply)
+        objectives = [objective.text for objective in lesson.objectives]
+        chat_session = create_chat_session(db, student_id=user_id, lesson_id=lesson_id)
+        config = {"configurable": {"thread_id": user_id}}
 
-            # Notify if just mastered
-            if result.get("mastered"):
-                await websocket.send_text("🎉 All objectives mastered! Session complete.")
-                break
+        # Seed initial state for this thread if it's a new session
+        existing = tutor_graph.get_state(config)
+        if not existing or not existing.values:
+            tutor_graph.update_state(config, {
+                "messages": [],
+                "student_id": user_id,
+                "lesson_id": lesson_id,
+                "objectives": objectives,
+                "assessment": {},
+                "mastered": False,
+            })
 
-    except WebSocketDisconnect:
-        print(f"WebSocket disconnected for user: {user_id}")
+        try:
+            while True:
+                message = await websocket.receive_text()
+                add_message(db, chat_session_id=chat_session.id, role="user", content=message)
+                # Check if already mastered before processing
+                state = tutor_graph.get_state(config)
+                if state and state.values.get("mastered"):
+                    await websocket.send_text("🎉 All objectives mastered! Session complete.")
+                    break
+
+                # Only pass the new user message — checkpointer supplies the rest
+                result = tutor_graph.invoke(
+                    {"messages": [{"role": "user", "content": message}]},
+                    config=config,
+                )
+
+                # Send teacher's reply back to student
+                teacher_reply = result["messages"][-1]["content"]
+                add_message(db, chat_session_id=chat_session.id, role="assistant", content=teacher_reply)
+                if result.get("assessment"):
+                    save_assessment(
+                        db,
+                        student_id=user_id,
+                        lesson_id=lesson_id,
+                        scores=result["assessment"],
+                        mastered=bool(result.get("mastered")),
+                    )
+                await websocket.send_text(teacher_reply)
+
+                # Notify if just mastered
+                if result.get("mastered"):
+                    await websocket.send_text("🎉 All objectives mastered! Session complete.")
+                    break
+
+        except WebSocketDisconnect:
+            print(f"WebSocket disconnected for user: {user_id}")
+    finally:
+        db.close()
 
 
 
