@@ -16,6 +16,12 @@ function LearningObjectivesForm() {
     const [genLoading, setGenLoading] = useState(false);
     const [genError, setGenError] = useState('');
     const [generatedPlan, setGeneratedPlan] = useState(null);
+    const [materialClassId, setMaterialClassId] = useState('');
+    const [materialFile, setMaterialFile] = useState(null);
+    const [materialLoading, setMaterialLoading] = useState(false);
+    const [materialError, setMaterialError] = useState('');
+    const [materialSuccess, setMaterialSuccess] = useState('');
+    const [materials, setMaterials] = useState([]);
 
     const handleLessonIdChange = (e) => { setLessonId(e.target.value); setError(''); setSuccessMessage(''); };
     const handleTitleChange = (e) => { setTitle(e.target.value); setError(''); setSuccessMessage(''); };
@@ -73,7 +79,6 @@ function LearningObjectivesForm() {
 
         setLoading(true); setError(''); setSuccessMessage('');
         const payload = { lesson_id: lessonId.trim(), title: title.trim(), objectives: filteredObjectives };
-        const assessor_payload = { class_id: lessonId.trim() };
 
         try {
             const response = await fetch('/api/learning-objectives', {
@@ -85,16 +90,68 @@ function LearningObjectivesForm() {
         } catch (err) {
             setError(err.message || 'An unexpected error occurred.');
         } finally { setLoading(false); }
+    };
 
+    const loadMaterials = async (classIdOverride) => {
+        const classId = (classIdOverride || materialClassId).trim();
+        if (!classId) {
+            setMaterialError('Enter a class ID first.');
+            return;
+        }
+
+        setMaterialLoading(true);
+        setMaterialError('');
         try {
-            const response = await fetch('/api/create-assessor', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(assessor_payload),
-            });
-            if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.detail || 'Failed to create assessor.'); }
-            setSuccessMessage('Assessor created successfully!');
+            const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/materials`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to load class materials.');
+            }
+            setMaterials(data.materials || []);
         } catch (err) {
-            setError(err.message || 'An unexpected error occurred.');
-        } finally { setLoading(false); }
+            setMaterialError(err.message || 'Failed to load class materials.');
+            setMaterials([]);
+        } finally {
+            setMaterialLoading(false);
+        }
+    };
+
+    const handleMaterialUpload = async (event) => {
+        event.preventDefault();
+        const classId = materialClassId.trim();
+        if (!classId) {
+            setMaterialError('Class ID cannot be empty.');
+            return;
+        }
+        if (!materialFile) {
+            setMaterialError('Choose a PDF file to upload.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', materialFile);
+        setMaterialLoading(true);
+        setMaterialError('');
+        setMaterialSuccess('');
+        try {
+            const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/materials`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                const detail = typeof data.detail === 'string' ? data.detail : data.detail?.message;
+                throw new Error(detail || 'Failed to upload material.');
+            }
+            setMaterialSuccess(`Uploaded ${data.filename} and indexed ${data.chunk_count} chunks.`);
+            setMaterialFile(null);
+            event.target.reset();
+            await loadMaterials(classId);
+        } catch (err) {
+            setMaterialError(err.message || 'Failed to upload material.');
+        } finally {
+            setMaterialLoading(false);
+        }
     };
 
     return (
@@ -176,6 +233,66 @@ function LearningObjectivesForm() {
                 <button type="submit" className="submit-button" disabled={loading}>
                     {loading ? 'Submitting...' : 'Submit Objectives'}
                 </button>
+            </form>
+
+            <form onSubmit={handleMaterialUpload} className="objectives-form-card material-upload-card">
+                <h2>Import Class Material</h2>
+                <div className="form-group">
+                    <label htmlFor="materialClassId">Class ID:</label>
+                    <input
+                        type="text"
+                        id="materialClassId"
+                        value={materialClassId}
+                        onChange={(e) => {
+                            setMaterialClassId(e.target.value);
+                            setMaterialError('');
+                            setMaterialSuccess('');
+                        }}
+                        placeholder="e.g., science101"
+                        className="form-input"
+                        required
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="materialFile">Course Material PDF:</label>
+                    <input
+                        type="file"
+                        id="materialFile"
+                        accept="application/pdf"
+                        onChange={(e) => setMaterialFile(e.target.files?.[0] || null)}
+                        className="form-input"
+                        required
+                    />
+                </div>
+                {materialError && <p className="error-message">{materialError}</p>}
+                {materialSuccess && <p className="success-message">{materialSuccess}</p>}
+                <div className="preview-actions">
+                    <button type="submit" className="submit-button" disabled={materialLoading}>
+                        {materialLoading ? 'Importing...' : 'Import Material'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => loadMaterials()}
+                        className="add-objective-button"
+                        disabled={materialLoading || !materialClassId.trim()}
+                    >
+                        Refresh Materials
+                    </button>
+                </div>
+
+                {materials.length > 0 && (
+                    <div className="materials-list">
+                        <h3>Imported Materials</h3>
+                        <ul>
+                            {materials.map((material) => (
+                                <li key={material.id}>
+                                    <span>{material.filename}</span>
+                                    <small>{material.status} · {material.chunk_count} chunks</small>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </form>
         </div>
     );

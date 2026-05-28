@@ -45,7 +45,7 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                 "student_id": user_id,
                 "lesson_id": lesson_id,
                 "objectives": objectives,
-                "assessment": {},
+                "assessment": {f"objective_{i+1}": 0 for i in range(len(objectives))},
                 "mastered": False,
             })
 

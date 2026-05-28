@@ -34,6 +34,7 @@ class Lesson(Base):
     )
     enrollments: Mapped[list["Enrollment"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
     assessments: Mapped[list["Assessment"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
+    materials: Mapped[list["CourseMaterial"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
 
 
 class LearningObjective(Base):
@@ -106,3 +107,20 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     chat_session: Mapped[ChatSession] = relationship(back_populates="messages")
+
+
+class CourseMaterial(Base):
+    __tablename__ = "course_materials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    storage_path: Mapped[str] = mapped_column(Text, nullable=False)
+    vector_document_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
+    chunk_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    lesson: Mapped[Lesson] = relationship(back_populates="materials")

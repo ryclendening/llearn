@@ -39,47 +39,60 @@ def teacher_node(state: TutorState) -> dict:
     response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[system] + state["messages"],
-        temperature=0.5,
+        temperature=0.2,
     )
     reply = (response.choices[0].message.content or "").strip()
     return {"messages": [{"role": "assistant", "content": reply}]}
 
 
 def assessor_node(state: TutorState) -> dict:
-    """Silently evaluates student understanding after every teacher response."""
+    """Incrementally updates student understanding after the latest exchange."""
     objective_list = _build_objective_list(state["objectives"])
+    previous_assessment = _normalize_assessment(state.get("assessment", {}), len(state["objectives"]))
+    latest_exchange = state["messages"][-2:]
     system = {
         "role": "system",
         "content": (
-            "Assess the student's performance based on the given objectives. "
-            "Return a JSON object ONLY, with 1 for understood and 0 for not understood: "
-            '{"objective_1": 0, "objective_2": 1, ...}'
+            "You update a student's mastery assessment after each tutoring exchange. "
+            "Use the previous assessment as the baseline. Only change an objective from 0 to 1 "
+            "when the latest exchange gives clear evidence that the student understands it. "
+            "Do not change a mastered objective back to 0 unless the latest exchange clearly "
+            "shows the previous mastery was wrong. Return JSON only."
         ),
     }
     prompt = {
         "role": "user",
         "content": (
             f"Objectives:\n{objective_list}\n\n"
-            f"Conversation:\n{state['messages']}\n\n"
-            "Return ONLY a JSON object mapping each objective key to 1 or 0."
+            f"Previous assessment:\n{json.dumps(previous_assessment)}\n\n"
+            f"Latest exchange:\n{json.dumps(latest_exchange)}\n\n"
+            "Return ONLY a JSON object mapping every objective key to 1 or 0."
         ),
     }
     response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[system, prompt],
-        temperature=0.2,
+        temperature=0.1,
     )
     raw = (response.choices[0].message.content or "").strip()
     try:
         # Strip markdown code fences if present
         clean = raw.replace("```json", "").replace("```", "").strip()
-        assessment = json.loads(clean)
+        assessment = _normalize_assessment(json.loads(clean), len(state["objectives"]))
     except json.JSONDecodeError:
-        # Fall back to all zeros — don't crash the session
-        assessment = {f"objective_{i+1}": 0 for i in range(len(state["objectives"]))}
+        # Keep the last known assessment rather than erasing progress on parser failure.
+        assessment = previous_assessment
 
     mastered = bool(assessment) and all(v == 1 for v in assessment.values())
     return {"assessment": assessment, "mastered": mastered}
+
+
+def _normalize_assessment(assessment: dict, objective_count: int) -> dict:
+    normalized = {}
+    for i in range(objective_count):
+        key = f"objective_{i+1}"
+        normalized[key] = 1 if assessment.get(key) in (1, True, "1") else 0
+    return normalized
 
 
 # ── Routing ────────────────────────────────────────────────────────────────────

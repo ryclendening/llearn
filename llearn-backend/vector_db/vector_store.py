@@ -134,6 +134,8 @@ class WeaviateVectorDB:
     text_key: str = "text"
     document_id_key: str = "document_id"
     page_key: str = "page"
+    class_id_key: str = "class_id"
+    material_id_key: str = "material_id"
 
     _client: Any = None
 
@@ -250,6 +252,8 @@ class WeaviateVectorDB:
                     Property(name=self.text_key, data_type=DataType.TEXT),
                     Property(name=self.document_id_key, data_type=DataType.TEXT),
                     Property(name=self.page_key, data_type=DataType.INT),
+                    Property(name=self.class_id_key, data_type=DataType.TEXT),
+                    Property(name=self.material_id_key, data_type=DataType.INT),
                 ],
             )
             return
@@ -267,6 +271,8 @@ class WeaviateVectorDB:
                 {"name": self.text_key, "dataType": ["text"]},
                 {"name": self.document_id_key, "dataType": ["text"]},
                 {"name": self.page_key, "dataType": ["int"]},
+                {"name": self.class_id_key, "dataType": ["text"]},
+                {"name": self.material_id_key, "dataType": ["int"]},
             ],
         }
         client.schema.create_class(class_obj)
