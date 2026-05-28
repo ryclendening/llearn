@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from models import Assessment, ChatSession, Enrollment, LearningObjective, Lesson, Message, Student
+from db.models import Assessment, ChatSession, Enrollment, LearningObjective, Lesson, Message, Student
 
 
 DEFAULT_LESSON = {
