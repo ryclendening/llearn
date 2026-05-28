@@ -6,7 +6,6 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from pydantic import BaseModel, Field, ValidationError
 from typing import List
-from configuration import config as app_config
 
 class LearningObjectives(BaseModel):
     lesson_id: str
@@ -29,15 +28,15 @@ def _generator_system_prompt(genre: str, age: int) -> str:
         f"{{'lesson_id': 'class123', 'title': 'classtitle', 'objectives': ['objective 1', 'objective 2', ...]}}. "
     )
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
+from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(model="gpt-4o")
-structured_llm = llm.with_structured_output(LearningObjectives)
+def _structured_llm():
+    return ChatOpenAI(model="gpt-4o").with_structured_output(LearningObjectives)
 
 def generator_node(state: Generator):
     system = SystemMessage(content=_generator_system_prompt(state["genre"], state['age']))
-    response = structured_llm.invoke([system] + state["messages"])
+    response = _structured_llm().invoke([system] + state["messages"])
     # response is already a LearningObjectives pydantic object
     return {"lesson_plan": response.model_dump()}
 

@@ -4,6 +4,10 @@ node_modules/
 package.json
 package-lock.json
 public/
+!llearn-frontend/package.json
+!llearn-frontend/package-lock.json
+!llearn-frontend/public/
+!llearn-frontend/public/index.html
 # Distribution / packaging
 .Python
 build/

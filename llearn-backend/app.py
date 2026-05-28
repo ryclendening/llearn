@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from graph import tutor_graph, TutorState
 from typing import Dict
 import uvicorn
 import json
-from configuration import config
 import random_lesson_gen
+
 app = FastAPI()
 
 # ── In-memory stores ───────────────────────────────────────────────────────────
