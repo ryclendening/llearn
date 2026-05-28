@@ -27,3 +27,4 @@ configuration/
 .installed.cfg
 *.egg
 *.db
+uploads/

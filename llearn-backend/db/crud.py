@@ -3,7 +3,16 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from db.models import Assessment, ChatSession, Enrollment, LearningObjective, Lesson, Message, Student
+from db.models import (
+    Assessment,
+    ChatSession,
+    CourseMaterial,
+    Enrollment,
+    LearningObjective,
+    Lesson,
+    Message,
+    Student,
+)
 
 
 DEFAULT_LESSON = {
@@ -157,3 +166,74 @@ def get_latest_assessment(db: Session, student_id: str) -> Assessment | None:
         .where(Assessment.student_id == student_id)
         .order_by(Assessment.created_at.desc(), Assessment.id.desc())
     )
+
+
+def create_course_material(
+    db: Session,
+    *,
+    lesson_id: str,
+    filename: str,
+    content_type: str | None,
+    storage_path: str,
+    vector_document_id: str,
+) -> CourseMaterial:
+    if not get_lesson(db, lesson_id):
+        raise ValueError("lesson_not_found")
+
+    material = CourseMaterial(
+        lesson_id=lesson_id,
+        filename=filename,
+        content_type=content_type,
+        storage_path=storage_path,
+        vector_document_id=vector_document_id,
+    )
+    db.add(material)
+    db.commit()
+    db.refresh(material)
+    return material
+
+
+def update_course_material_ingest_result(
+    db: Session,
+    *,
+    material_id: int,
+    status: str,
+    chunk_count: int = 0,
+    error_message: str | None = None,
+) -> CourseMaterial:
+    material = db.get(CourseMaterial, material_id)
+    if material is None:
+        raise ValueError("material_not_found")
+
+    material.status = status
+    material.chunk_count = chunk_count
+    material.error_message = error_message
+    db.commit()
+    db.refresh(material)
+    return material
+
+
+def list_course_materials(db: Session, lesson_id: str) -> list[CourseMaterial] | None:
+    if not get_lesson(db, lesson_id):
+        return None
+    return list(
+        db.scalars(
+            select(CourseMaterial)
+            .where(CourseMaterial.lesson_id == lesson_id)
+            .order_by(CourseMaterial.created_at.desc(), CourseMaterial.id.desc())
+        )
+    )
+
+
+def course_material_to_payload(material: CourseMaterial) -> dict:
+    return {
+        "id": material.id,
+        "class_id": material.lesson_id,
+        "filename": material.filename,
+        "content_type": material.content_type,
+        "vector_document_id": material.vector_document_id,
+        "status": material.status,
+        "chunk_count": material.chunk_count,
+        "error_message": material.error_message,
+        "created_at": material.created_at.isoformat(),
+    }

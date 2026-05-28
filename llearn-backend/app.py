@@ -5,11 +5,12 @@ load_dotenv()
 
 import uvicorn
 from db.init import initialize_database
-from routers import chat, learning_objectives, performance, students
+from routers import chat, learning_objectives, materials, performance, students
 
 app = FastAPI()
 app.include_router(learning_objectives.router)
 app.include_router(students.router)
+app.include_router(materials.router)
 app.include_router(performance.router)
 app.include_router(chat.router)
 

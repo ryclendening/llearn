@@ -1,8 +1,7 @@
 import os
-import uuid
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
-from vector_store import WeaviateVectorDB
+from vector_db.vector_store import WeaviateVectorDB
 
 EMBED_MODEL = "all-MiniLM-L6-v2"
 CHUNK_SIZE = 500  # characters per chunk
@@ -31,7 +30,13 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 def embed(model: SentenceTransformer, texts: list[str]) -> list[list[float]]:
     return model.encode(texts, show_progress_bar=False).tolist()
 
-def ingest_pdf(pdf_path: str, doc_id: str = None):
+def ingest_pdf(
+    pdf_path: str,
+    doc_id: str | None = None,
+    *,
+    class_id: str | None = None,
+    material_id: int | None = None,
+):
     doc_id = doc_id or os.path.basename(pdf_path)
     
     print(f"Loading model...")
