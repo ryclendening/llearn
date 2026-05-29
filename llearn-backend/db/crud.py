@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from db.models import (
@@ -54,6 +54,16 @@ def list_lessons(db: Session) -> list[Lesson]:
             .order_by(Lesson.created_at, Lesson.id)
         )
     )
+
+
+def delete_lesson(db: Session, lesson_id: str) -> bool:
+    lesson = get_lesson(db, lesson_id)
+    if lesson is None:
+        return False
+
+    db.delete(lesson)
+    db.commit()
+    return True
 
 
 def lesson_to_payload(lesson: Lesson) -> dict:
@@ -211,6 +221,24 @@ def update_course_material_ingest_result(
     db.commit()
     db.refresh(material)
     return material
+
+
+def get_course_material(db: Session, material_id: int) -> CourseMaterial | None:
+    return db.get(CourseMaterial, material_id)
+
+
+def delete_course_material(db: Session, material_id: int) -> CourseMaterial | None:
+    material = get_course_material(db, material_id)
+    if material is None:
+        return None
+
+    db.delete(material)
+    db.commit()
+    return material
+
+
+def count_course_materials_with_storage_path(db: Session, storage_path: str) -> int:
+    return db.scalar(select(func.count()).select_from(CourseMaterial).where(CourseMaterial.storage_path == storage_path)) or 0
 
 
 def list_course_materials(db: Session, lesson_id: str) -> list[CourseMaterial] | None:

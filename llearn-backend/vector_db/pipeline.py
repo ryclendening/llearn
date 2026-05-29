@@ -69,7 +69,20 @@ def ingest_pdf(
     vectors = embed(model, texts)
 
     batch = [
-        (item["text"], vec, item["doc_id"], item["page"], None)
+        (
+            item["text"],
+            vec,
+            item["doc_id"],
+            item["page"],
+            {
+                key: value
+                for key, value in {
+                    "class_id": class_id,
+                    "material_id": material_id,
+                }.items()
+                if value is not None
+            },
+        )
         for item, vec in zip(items, vectors)
     ]
 
