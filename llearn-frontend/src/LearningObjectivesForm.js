@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import HomeButton from './HomeButton';
 import './LearningObjectivesForm.css';
 
 function LearningObjectivesForm() {
@@ -25,6 +26,13 @@ function LearningObjectivesForm() {
     const [materialSuccess, setMaterialSuccess] = useState('');
     const [materials, setMaterials] = useState([]);
     const [deleteMaterialId, setDeleteMaterialId] = useState('');
+    const [materialExamples, setMaterialExamples] = useState({});
+    const [examplesLoadingId, setExamplesLoadingId] = useState('');
+    const [extractingExamplesId, setExtractingExamplesId] = useState('');
+    const [selectedExampleIds, setSelectedExampleIds] = useState([]);
+    const [publishingExamples, setPublishingExamples] = useState(false);
+    const [publishedExamples, setPublishedExamples] = useState([]);
+    const [unpublishingExampleId, setUnpublishingExampleId] = useState('');
     const [classSessions, setClassSessions] = useState([]);
     const [sessionsLoading, setSessionsLoading] = useState(false);
     const [sessionsError, setSessionsError] = useState('');
@@ -149,6 +157,7 @@ function LearningObjectivesForm() {
             if (materialClassId === sessionId) {
                 setMaterialClassId('');
                 setMaterials([]);
+                setPublishedExamples([]);
             }
             setSelectedMaterialClassIds((selectedIds) => selectedIds.filter((id) => id !== sessionId));
         } catch (err) {
@@ -174,11 +183,32 @@ function LearningObjectivesForm() {
                 throw new Error(data.detail || 'Failed to load class materials.');
             }
             setMaterials(data.materials || []);
+            await loadPublishedExamples(classId);
         } catch (err) {
             setMaterialError(err.message || 'Failed to load class materials.');
             setMaterials([]);
+            setPublishedExamples([]);
         } finally {
             setMaterialLoading(false);
+        }
+    };
+
+    const loadPublishedExamples = async (classId) => {
+        if (!classId) {
+            setPublishedExamples([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/examples`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to load published examples.');
+            }
+            setPublishedExamples(data.examples || []);
+        } catch (err) {
+            setMaterialError(err.message || 'Failed to load published examples.');
+            setPublishedExamples([]);
         }
     };
 
@@ -221,7 +251,10 @@ function LearningObjectivesForm() {
                 const detail = typeof data.detail === 'string' ? data.detail : data.detail?.message;
                 throw new Error(detail || 'Failed to upload material.');
             }
-            setMaterialSuccess(`Uploaded ${data.filename} to ${data.class_ids.length} class${data.class_ids.length === 1 ? '' : 'es'} and indexed ${data.chunk_count} chunks.`);
+            const extractionNote = data.extraction_error
+                ? ' Example extraction failed, but the file is still available for RAG.'
+                : ` Detected ${data.extracted_example_count || 0} example${data.extracted_example_count === 1 ? '' : 's'}.`;
+            setMaterialSuccess(`Uploaded ${data.filename} to ${data.class_ids.length} class${data.class_ids.length === 1 ? '' : 'es'} and indexed ${data.chunk_count} chunks.${extractionNote}`);
             setMaterialFile(null);
             event.target.reset();
             const classIdToView = materialClassId && selectedMaterialClassIds.includes(materialClassId)
@@ -256,11 +289,128 @@ function LearningObjectivesForm() {
                 throw new Error(data.detail || 'Failed to delete material.');
             }
             setMaterials((currentMaterials) => currentMaterials.filter((item) => item.id !== material.id));
+            setMaterialExamples((currentExamples) => {
+                const nextExamples = { ...currentExamples };
+                delete nextExamples[material.id];
+                return nextExamples;
+            });
             setMaterialSuccess(`Deleted ${material.filename} from ${material.class_id}.`);
         } catch (err) {
             setMaterialError(err.message || 'Failed to delete material.');
         } finally {
             setDeleteMaterialId('');
+        }
+    };
+
+    const loadMaterialExamples = async (materialId) => {
+        setExamplesLoadingId(materialId);
+        setMaterialError('');
+        try {
+            const response = await fetch(`/api/materials/${materialId}/examples`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to load extracted examples.');
+            }
+            setMaterialExamples((currentExamples) => ({
+                ...currentExamples,
+                [materialId]: data.examples || [],
+            }));
+        } catch (err) {
+            setMaterialError(err.message || 'Failed to load extracted examples.');
+        } finally {
+            setExamplesLoadingId('');
+        }
+    };
+
+    const extractMaterialExamples = async (materialId) => {
+        setExtractingExamplesId(materialId);
+        setMaterialError('');
+        setMaterialSuccess('');
+        try {
+            const response = await fetch(`/api/materials/${materialId}/examples/extract`, {
+                method: 'POST',
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to re-detect examples.');
+            }
+            setMaterialExamples((currentExamples) => ({
+                ...currentExamples,
+                [materialId]: data.examples || [],
+            }));
+            setMaterialSuccess(`Detected ${data.created_count} new example${data.created_count === 1 ? '' : 's'}.`);
+        } catch (err) {
+            setMaterialError(err.message || 'Failed to re-detect examples.');
+        } finally {
+            setExtractingExamplesId('');
+        }
+    };
+
+    const toggleExampleSelection = (exampleId) => {
+        setSelectedExampleIds((selectedIds) => (
+            selectedIds.includes(exampleId)
+                ? selectedIds.filter((id) => id !== exampleId)
+                : [...selectedIds, exampleId]
+        ));
+        setMaterialError('');
+        setMaterialSuccess('');
+    };
+
+    const publishSelectedExamples = async () => {
+        if (!materialClassId) {
+            setMaterialError('Select a class before publishing examples.');
+            return;
+        }
+        if (selectedExampleIds.length === 0) {
+            setMaterialError('Select at least one extracted example to publish.');
+            return;
+        }
+
+        setPublishingExamples(true);
+        setMaterialError('');
+        setMaterialSuccess('');
+        try {
+            const response = await fetch(`/api/classes/${encodeURIComponent(materialClassId)}/examples`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ example_ids: selectedExampleIds }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to publish examples.');
+            }
+            setSelectedExampleIds([]);
+            setMaterialSuccess(`Published ${data.examples.length} example${data.examples.length === 1 ? '' : 's'} for ${materialClassId}.`);
+            await loadPublishedExamples(materialClassId);
+        } catch (err) {
+            setMaterialError(err.message || 'Failed to publish examples.');
+        } finally {
+            setPublishingExamples(false);
+        }
+    };
+
+    const unpublishExample = async (exampleId) => {
+        if (!materialClassId) {
+            return;
+        }
+
+        setUnpublishingExampleId(exampleId);
+        setMaterialError('');
+        setMaterialSuccess('');
+        try {
+            const response = await fetch(`/api/classes/${encodeURIComponent(materialClassId)}/examples/${exampleId}`, {
+                method: 'DELETE',
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Failed to unpublish example.');
+            }
+            setPublishedExamples((examples) => examples.filter((example) => example.id !== exampleId));
+            setMaterialSuccess('Example unpublished.');
+        } catch (err) {
+            setMaterialError(err.message || 'Failed to unpublish example.');
+        } finally {
+            setUnpublishingExampleId('');
         }
     };
 
@@ -270,6 +420,7 @@ function LearningObjectivesForm() {
 
     return (
         <div className="objectives-page-container">
+            <HomeButton />
             <h1 className="objectives-page-title">Create Learning Objectives</h1>
 
             {/* ── AI Generator Section ── */}
@@ -461,8 +612,12 @@ function LearningObjectivesForm() {
                             setMaterialError('');
                             setMaterialSuccess('');
                             setMaterials([]);
+                            setMaterialExamples({});
+                            setSelectedExampleIds([]);
                             if (classId) {
                                 loadMaterials(classId);
+                            } else {
+                                setPublishedExamples([]);
                             }
                         }}
                         className="form-input"
@@ -493,6 +648,81 @@ function LearningObjectivesForm() {
                                         disabled={deleteMaterialId === material.id}
                                     >
                                         {deleteMaterialId === material.id ? 'Deleting...' : 'Delete'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => loadMaterialExamples(material.id)}
+                                        className="add-objective-button review-examples-button"
+                                        disabled={examplesLoadingId === material.id}
+                                    >
+                                        {examplesLoadingId === material.id ? 'Loading...' : 'Review Examples'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => extractMaterialExamples(material.id)}
+                                        className="add-objective-button review-examples-button"
+                                        disabled={extractingExamplesId === material.id}
+                                    >
+                                        {extractingExamplesId === material.id ? 'Detecting...' : 'Re-detect Examples'}
+                                    </button>
+                                    {materialExamples[material.id] && (
+                                        <div className="examples-review-list">
+                                            {material.extraction_status === 'failed' && (
+                                                <p className="error-message">{material.extraction_error || 'Example extraction failed.'}</p>
+                                            )}
+                                            {materialExamples[material.id].length === 0 && material.extraction_status !== 'failed' && (
+                                                <p className="empty-sessions-message">No worked examples were detected.</p>
+                                            )}
+                                            {materialExamples[material.id].map((example) => (
+                                                <label key={example.id} className="example-review-item">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedExampleIds.includes(example.id)}
+                                                        onChange={() => toggleExampleSelection(example.id)}
+                                                    />
+                                                    <span>
+                                                        <strong>{example.problem_text}</strong>
+                                                        <small>
+                                                            Page {example.page_start || '?'} · Confidence {Math.round((example.confidence || 0) * 100)}%
+                                                        </small>
+                                                        <em>{example.solution_text}</em>
+                                                    </span>
+                                                </label>
+                                            ))}
+                                            {materialExamples[material.id].length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={publishSelectedExamples}
+                                                    className="submit-button publish-examples-button"
+                                                    disabled={publishingExamples || selectedExampleIds.length === 0}
+                                                >
+                                                    {publishingExamples ? 'Publishing...' : 'Publish Selected Examples'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {publishedExamples.length > 0 && (
+                    <div className="materials-list published-examples-list">
+                        <h3>Published Examples</h3>
+                        <ul>
+                            {publishedExamples.map((example) => (
+                                <li key={example.id}>
+                                    <div className="material-details">
+                                        <span>{example.problem_text}</span>
+                                        <small>{example.filename || 'Class material'} · Page {example.page_start || '?'}</small>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => unpublishExample(example.id)}
+                                        className="delete-session-button"
+                                        disabled={unpublishingExampleId === example.id}
+                                    >
+                                        {unpublishingExampleId === example.id ? 'Removing...' : 'Unpublish'}
                                     </button>
                                 </li>
                             ))}

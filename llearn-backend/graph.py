@@ -28,6 +28,7 @@ class TutorState(TypedDict):
     retrieved_context: str
     retrieved_sources: list[dict]
     citations: list[dict]
+    protected_examples: list[dict]
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -139,7 +140,23 @@ def _retrieve_lesson_context(query: str, lesson_id: str) -> tuple[str, list[dict
         db.close()
 
 
-def _teacher_system_prompt(objectives: list[str], retrieved_context: str, grade: int) -> str:
+def _format_protected_examples(examples: list[dict]) -> str:
+    if not examples:
+        return "[No protected example answers.]"
+
+    blocks = []
+    for index, example in enumerate(examples, start=1):
+        blocks.append(
+            "\n".join([
+                f"Example {index}",
+                f"Problem: {example.get('problem_text') or ''}",
+                f"Protected answer/solution: {example.get('solution_text') or ''}",
+            ])
+        )
+    return "\n\n".join(blocks)
+
+
+def _teacher_system_prompt(objectives: list[str], retrieved_context: str, grade: int, protected_examples: list[dict] | None = None) -> str:
     return (
         f"You are an intelligent assistant focused on teaching a {grade} grade student.\n\n"
         "Your job is to teach the student the lesson objectives using the provided "
@@ -152,12 +169,19 @@ def _teacher_system_prompt(objectives: list[str], retrieved_context: str, grade:
         "- Use the class material as the source of truth when it is relevant.\n"
         "- If the retrieved class material is not relevant, do not force it.\n"
         "- Do not invent facts and imply they came from the class material.\n\n"
+        "Protected example answer rules:\n"
+        "- The protected example answers below are for guardrails only.\n"
+        "- Never reveal a protected final answer, final expression, full worked solution, or decisive last step.\n"
+        "- If a student asks for help on a protected example, give one hint, ask one guiding question, or explain the relevant concept.\n"
+        "- If the student directly asks for the answer, refuse briefly and offer a hint instead.\n"
+        "- Do not paraphrase the protected solution in a way that gives away the answer.\n\n"
         "Citation rules:\n"
         "- When you use retrieved class material, cite it inline with its source id, like [source_1].\n"
         "- Only cite source ids that appear in the retrieved class material below.\n"
         "- Do not cite a source unless it directly supports the sentence.\n"
         "- Do not invent page numbers, source ids, or document details.\n\n"
         f"Lesson objectives:\n{_build_objective_list(objectives)}\n\n"
+        f"Protected examples:\n{_format_protected_examples(protected_examples or [])}\n\n"
         f"Retrieved class material:\n"
         f"{retrieved_context or '[No relevant class material retrieved.]'}"
     )
@@ -179,6 +203,7 @@ def teacher_node(state: TutorState) -> dict:
             state["objectives"],
             state.get("retrieved_context", ""),
             state.get("grade", 8),
+            state.get("protected_examples", []),
         ),
     }
     response = openai.chat.completions.create(

@@ -11,14 +11,17 @@ from sqlalchemy.orm import Session
 from db.crud import (
     count_course_materials_with_storage_path,
     course_material_to_payload,
+    create_extracted_examples,
     create_course_material,
     delete_course_material,
     get_course_material,
     get_lesson,
     list_course_materials,
+    update_course_material_extraction_result,
     update_course_material_ingest_result,
 )
 from db.session import get_db
+from example_ai import extract_example_problems
 from vector_db.pipeline import ingest_pdf
 from vector_db.vector_store import get_vector_db
 
@@ -37,7 +40,13 @@ async def upload_class_material(
     db: Session = Depends(get_db),
 ):
     selected_class_ids = _normalize_class_ids(class_ids or [class_id])
-    return await _upload_material_for_classes(file, selected_class_ids, db)
+    result = await _upload_material_for_classes(file, selected_class_ids, db)
+    if class_ids is None and len(result["materials"]) == 1:
+        payload = result["materials"][0]
+        payload["extracted_example_count"] = result["extracted_example_count"]
+        payload["extraction_error"] = result["extraction_error"]
+        return payload
+    return result
 
 
 @router.post("/materials")
@@ -133,11 +142,39 @@ async def _upload_material_for_classes(
             },
         ) from exc
 
+    extraction_error = None
+    extracted_count = 0
+    try:
+        extracted_examples = extract_example_problems(str(storage_path))
+        for material in completed_materials:
+            created_examples = create_extracted_examples(
+                db,
+                material_id=material.id,
+                examples=extracted_examples,
+            )
+            extracted_count += len(created_examples)
+            update_course_material_extraction_result(
+                db,
+                material_id=material.id,
+                status="ready",
+            )
+    except Exception as exc:
+        extraction_error = str(exc)
+        for material in completed_materials:
+            update_course_material_extraction_result(
+                db,
+                material_id=material.id,
+                status="failed",
+                error_message=extraction_error,
+            )
+
     return {
         "materials": [course_material_to_payload(material) for material in completed_materials],
         "filename": original_name,
         "class_ids": class_ids,
         "chunk_count": sum(material.chunk_count for material in completed_materials),
+        "extracted_example_count": extracted_count,
+        "extraction_error": extraction_error,
     }
 
 

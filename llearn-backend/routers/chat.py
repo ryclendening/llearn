@@ -10,6 +10,7 @@ from db.crud import (
     create_chat_session,
     get_lesson,
     get_student_lesson_id,
+    list_published_examples,
     save_assessment,
 )
 from db.session import SessionLocal
@@ -46,6 +47,13 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
             return
 
         objectives = [objective.text for objective in lesson.objectives]
+        protected_examples = [
+            {
+                "problem_text": item.example.problem_text,
+                "solution_text": item.example.solution_text,
+            }
+            for item in (list_published_examples(db, lesson_id) or [])
+        ]
         chat_session = create_chat_session(db, student_id=user_id, lesson_id=lesson_id)
         config = {"configurable": {"thread_id": user_id}}
 
@@ -58,6 +66,13 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                 "objectives": objectives,
                 "assessment": {f"objective_{i+1}": 0 for i in range(len(objectives))},
                 "mastered": False,
+                "protected_examples": protected_examples,
+            })
+        else:
+            tutor_graph.update_state(config, {
+                "lesson_id": lesson_id,
+                "objectives": objectives,
+                "protected_examples": protected_examples,
             })
 
         try:
@@ -65,11 +80,6 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                 message = await websocket.receive_text()
                 try:
                     add_message(db, chat_session_id=chat_session.id, role="user", content=message)
-
-                    state = tutor_graph.get_state(config)
-                    if state and state.values.get("mastered"):
-                        await websocket.send_text(_chat_payload("🎉 All objectives mastered! Session complete.", message_type="system"))
-                        break
 
                     result = tutor_graph.invoke(
                         {"messages": [{"role": "user", "content": message}]},
@@ -89,8 +99,10 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                     await websocket.send_text(_chat_payload(teacher_reply, result.get("citations", [])))
 
                     if result.get("mastered"):
-                        await websocket.send_text(_chat_payload("🎉 All objectives mastered! Session complete.", message_type="system"))
-                        break
+                        await websocket.send_text(_chat_payload(
+                            "All lesson objectives are mastered. You can keep asking questions or work on example problems.",
+                            message_type="system",
+                        ))
                 except WebSocketDisconnect:
                     raise
                 except Exception:
