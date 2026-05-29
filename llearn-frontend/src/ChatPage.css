@@ -67,6 +67,33 @@
     color: #8a2be2; /* A shade of purple for bot messages */
 }
 
+.message-citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.citation-button {
+    border: 1px solid #b8c7de;
+    background: #eef5ff;
+    color: #17446f;
+    border-radius: 4px;
+    padding: 4px 7px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.citation-button:hover:not(:disabled) {
+    background: #dbeaff;
+    border-color: #7fa8d8;
+}
+
+.citation-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
 /* Chat input area */
 .chat-input-area {
     display: flex;

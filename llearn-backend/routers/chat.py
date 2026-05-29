@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import traceback
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from db.crud import (
@@ -16,6 +19,14 @@ from graph import tutor_graph
 router = APIRouter(tags=["chat"])
 
 
+def _chat_payload(text: str, citations: list[dict] | None = None, message_type: str = "assistant") -> str:
+    return json.dumps({
+        "type": message_type,
+        "text": text,
+        "citations": citations or [],
+    })
+
+
 @router.websocket("/ws/chat/{user_id}")
 async def websocket_chat(websocket: WebSocket, user_id: str):
     await websocket.accept()
@@ -24,13 +35,13 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
     try:
         lesson_id = get_student_lesson_id(db, user_id)
         if not lesson_id:
-            await websocket.send_text("Student not found")
+            await websocket.send_text(_chat_payload("Student not found", message_type="system"))
             await websocket.close()
             return
 
         lesson = get_lesson(db, lesson_id)
         if not lesson:
-            await websocket.send_text("Lesson not found")
+            await websocket.send_text(_chat_payload("Lesson not found", message_type="system"))
             await websocket.close()
             return
 
@@ -52,33 +63,43 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
         try:
             while True:
                 message = await websocket.receive_text()
-                add_message(db, chat_session_id=chat_session.id, role="user", content=message)
+                try:
+                    add_message(db, chat_session_id=chat_session.id, role="user", content=message)
 
-                state = tutor_graph.get_state(config)
-                if state and state.values.get("mastered"):
-                    await websocket.send_text("🎉 All objectives mastered! Session complete.")
-                    break
+                    state = tutor_graph.get_state(config)
+                    if state and state.values.get("mastered"):
+                        await websocket.send_text(_chat_payload("🎉 All objectives mastered! Session complete.", message_type="system"))
+                        break
 
-                result = tutor_graph.invoke(
-                    {"messages": [{"role": "user", "content": message}]},
-                    config=config,
-                )
-
-                teacher_reply = result["messages"][-1]["content"]
-                add_message(db, chat_session_id=chat_session.id, role="assistant", content=teacher_reply)
-                if result.get("assessment"):
-                    save_assessment(
-                        db,
-                        student_id=user_id,
-                        lesson_id=lesson_id,
-                        scores=result["assessment"],
-                        mastered=bool(result.get("mastered")),
+                    result = tutor_graph.invoke(
+                        {"messages": [{"role": "user", "content": message}]},
+                        config=config,
                     )
-                await websocket.send_text(teacher_reply)
 
-                if result.get("mastered"):
-                    await websocket.send_text("🎉 All objectives mastered! Session complete.")
-                    break
+                    teacher_reply = result["messages"][-1]["content"]
+                    add_message(db, chat_session_id=chat_session.id, role="assistant", content=teacher_reply)
+                    if result.get("assessment"):
+                        save_assessment(
+                            db,
+                            student_id=user_id,
+                            lesson_id=lesson_id,
+                            scores=result["assessment"],
+                            mastered=bool(result.get("mastered")),
+                        )
+                    await websocket.send_text(_chat_payload(teacher_reply, result.get("citations", [])))
+
+                    if result.get("mastered"):
+                        await websocket.send_text(_chat_payload("🎉 All objectives mastered! Session complete.", message_type="system"))
+                        break
+                except WebSocketDisconnect:
+                    raise
+                except Exception:
+                    db.rollback()
+                    traceback.print_exc()
+                    await websocket.send_text(_chat_payload(
+                        "I hit an error while processing that message. Please try again.",
+                        message_type="system",
+                    ))
 
         except WebSocketDisconnect:
             print(f"WebSocket disconnected for user: {user_id}")

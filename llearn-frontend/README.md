@@ -1,70 +1,99 @@
-# Getting Started with Create React App
+# Llearn Local Development
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Llearn has a React/Vite frontend, a FastAPI backend, Postgres for app data, and Weaviate for uploaded course-material vectors.
 
-## Available Scripts
+## Start Docker Services
 
-In the project directory, you can run:
+From the repo root:
 
-### `npm start`
+```bash
+cd /Users/ryanclendening/Development/llearn/llearn
+docker compose up -d postgres weaviate
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Check status:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+docker compose ps
+```
 
-### `npm test`
+Stop services without deleting stored data:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+docker compose stop
+```
 
-### `npm run build`
+Avoid `docker compose down -v` unless you intentionally want to delete the database volumes.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Backend
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Make sure `.env` contains:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```txt
+OPENAI_API_KEY=...
+DATABASE_URL=postgresql+psycopg://llearn:llearn@localhost:5432/llearn
+WEAVIATE_URL=http://localhost:8080
+WEAVIATE_GRPC_PORT=50051
+```
 
-### `npm run eject`
+Start the backend:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+conda activate llearn_env
+cd /Users/ryanclendening/Development/llearn/llearn/llearn-backend
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Frontend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+In another terminal:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+cd /Users/ryanclendening/Development/llearn/llearn/llearn-frontend
+npm install
+npm run dev
+```
 
-## Learn More
+Vite will print the local frontend URL, usually `http://localhost:5173`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Inspect Postgres
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+List tables:
 
-### Code Splitting
+```bash
+docker compose exec postgres psql -U llearn -d llearn -c "\dt"
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+View recent uploaded materials:
 
-### Analyzing the Bundle Size
+```bash
+docker compose exec postgres psql -U llearn -d llearn -c "SELECT id, lesson_id, filename, status, chunk_count FROM course_materials ORDER BY id DESC LIMIT 10;"
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Open interactive `psql`:
 
-### Making a Progressive Web App
+```bash
+docker compose exec postgres psql -U llearn -d llearn
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Exit interactive `psql` with:
 
-### Advanced Configuration
+```sql
+\q
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Useful Checks
 
-### Deployment
+Backend syntax check:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+conda run -n llearn_env python -m py_compile llearn-backend/app.py llearn-backend/db/*.py llearn-backend/routers/*.py llearn-backend/vector_db/*.py
+```
 
-### `npm run build` fails to minify
+Frontend build and tests:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+cd llearn-frontend
+npm run build
+npm test -- --run
+```

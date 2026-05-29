@@ -35,6 +35,7 @@ class Lesson(Base):
     enrollments: Mapped[list["Enrollment"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
     assessments: Mapped[list["Assessment"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
     materials: Mapped[list["CourseMaterial"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
+    chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
 
 
 class LearningObjective(Base):
@@ -94,6 +95,7 @@ class ChatSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     student: Mapped[Student] = relationship(back_populates="chat_sessions")
+    lesson: Mapped[Lesson] = relationship(back_populates="chat_sessions")
     messages: Mapped[list["Message"]] = relationship(back_populates="chat_session", cascade="all, delete-orphan")
 
 

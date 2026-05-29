@@ -10,6 +10,28 @@ function ChatPage() {
     const socket = useRef(null);
     const messagesEndRef = useRef(null);
 
+    const parseSocketMessage = (data) => {
+        try {
+            const payload = JSON.parse(data);
+            return {
+                sender: payload.type === 'system' ? 'System' : 'Bot',
+                text: payload.text || '',
+                citations: Array.isArray(payload.citations) ? payload.citations : [],
+            };
+        } catch {
+            return { sender: 'Bot', text: data, citations: [] };
+        }
+    };
+
+    const openCitation = (citation) => {
+        if (!citation.material_id) {
+            return;
+        }
+
+        const page = citation.page || 1;
+        window.open(`/api/materials/${citation.material_id}/file#page=${page}`, '_blank', 'noopener,noreferrer');
+    };
+
     // Effect for WebSocket connection
     useEffect(() => {
         const wsUrl = `ws://localhost:8000/ws/chat/${userId}`;
@@ -21,7 +43,7 @@ function ChatPage() {
         };
 
         socket.current.onmessage = (event) => {
-            setMessages(prev => [...prev, { sender: 'Bot', text: event.data }]);
+            setMessages(prev => [...prev, parseSocketMessage(event.data)]);
         };
 
         socket.current.onerror = (error) => {
@@ -78,6 +100,22 @@ function ChatPage() {
                         {messages.map((msg, index) => (
                             <p key={index} className={`chat-message ${msg.sender.toLowerCase()}`}>
                                 <strong>{msg.sender}:</strong> {msg.text}
+                                {Array.isArray(msg.citations) && msg.citations.length > 0 && (
+                                    <span className="message-citations">
+                                        {msg.citations.map((citation) => (
+                                            <button
+                                                key={citation.source_id}
+                                                type="button"
+                                                className="citation-button"
+                                                onClick={() => openCitation(citation)}
+                                                disabled={!citation.material_id}
+                                                title={citation.snippet || 'Open cited material'}
+                                            >
+                                                {citation.source_id} p. {citation.page || '?'}
+                                            </button>
+                                        ))}
+                                    </span>
+                                )}
                             </p>
                         ))}
                         <div ref={messagesEndRef} />

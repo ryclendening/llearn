@@ -8,7 +8,7 @@ This module intentionally keeps Weaviate as an optional dependency: the
 Environment variables (optional):
 - `WEAVIATE_URL` (default: http://localhost:8080)
 - `WEAVIATE_API_KEY` (default: unset)
-- `WEAVIATE_GRPC_PORT` (default: unset)
+- `WEAVIATE_GRPC_PORT` (default: 50051)
 - `WEAVIATE_COLLECTION` (default: Document)
 """
 
@@ -377,6 +377,7 @@ class WeaviateVectorDB:
         *,
         query_vector: Sequence[float],
         k: int = 5,
+        filters: Optional[Dict[str, Any]] = None,
     ) -> List[SearchResult]:
         """
         Return the top-k nearest objects by vector similarity.
@@ -385,12 +386,25 @@ class WeaviateVectorDB:
         weaviate = _import_weaviate()
 
         if _is_v4_client(weaviate):
-            from weaviate.classes.query import MetadataQuery  # type: ignore
+            from weaviate.classes.query import Filter, MetadataQuery  # type: ignore
 
             collection = client.collections.get(self.collection)
+            query_filter = None
+            for key, value in (filters or {}).items():
+                current = Filter.by_property(key).equal(value)
+                query_filter = current if query_filter is None else query_filter & current
+
             resp = collection.query.near_vector(
                 near_vector=list(query_vector),
                 limit=k,
+                filters=query_filter,
+                return_properties=[
+                    self.text_key,
+                    self.document_id_key,
+                    self.page_key,
+                    self.class_id_key,
+                    self.material_id_key,
+                ],
                 return_metadata=MetadataQuery(distance=True),
             )
 
@@ -407,11 +421,28 @@ class WeaviateVectorDB:
 
         # v3 query
         q = (
-            client.query.get(self.collection, [self.text_key, self.document_id_key, self.page_key])
+            client.query.get(
+                self.collection,
+                [self.text_key, self.document_id_key, self.page_key, self.class_id_key, self.material_id_key],
+            )
             .with_near_vector({"vector": list(query_vector)})
             .with_limit(k)
             .with_additional(["id", "distance"])
         )
+        if filters:
+            operands = []
+            for key, value in filters.items():
+                where_filter: Dict[str, Any] = {"path": [key], "operator": "Equal"}
+                if isinstance(value, bool):
+                    where_filter["valueBoolean"] = value
+                elif isinstance(value, int):
+                    where_filter["valueInt"] = value
+                elif isinstance(value, float):
+                    where_filter["valueNumber"] = value
+                else:
+                    where_filter["valueText"] = str(value)
+                operands.append(where_filter)
+            q = q.with_where(operands[0] if len(operands) == 1 else {"operator": "And", "operands": operands})
         data = q.do()
         out: List[SearchResult] = []
         for row in (data.get("data", {}).get("Get", {}).get(self.collection, []) or []):
@@ -422,12 +453,47 @@ class WeaviateVectorDB:
             out.append(SearchResult(uuid=uuid, score=distance, properties=properties))
         return out
 
+    def delete_by_material_id(self, material_id: int) -> None:
+        """
+        Delete all chunks associated with a material id.
+        """
+        self._delete_by_property(self.material_id_key, material_id)
+
+    def delete_by_document_id(self, document_id: str) -> None:
+        """
+        Delete all chunks associated with a document id.
+        """
+        self._delete_by_property(self.document_id_key, document_id)
+
+    def _delete_by_property(self, key: str, value: Any) -> None:
+        self.ensure_schema()
+        client = self.connect()
+        weaviate = _import_weaviate()
+
+        if _is_v4_client(weaviate):
+            from weaviate.classes.query import Filter  # type: ignore
+
+            collection = client.collections.get(self.collection)
+            collection.data.delete_many(where=Filter.by_property(key).equal(value))
+            return
+
+        where_filter: Dict[str, Any] = {"path": [key], "operator": "Equal"}
+        if isinstance(value, bool):
+            where_filter["valueBoolean"] = value
+        elif isinstance(value, int):
+            where_filter["valueInt"] = value
+        elif isinstance(value, float):
+            where_filter["valueNumber"] = value
+        else:
+            where_filter["valueText"] = str(value)
+
+        client.batch.delete_objects(class_name=self.collection, where=where_filter)
+
 
 def get_vector_db() -> WeaviateVectorDB:
     url = os.getenv("WEAVIATE_URL", "http://localhost:8080")
     api_key = os.getenv("WEAVIATE_API_KEY") or None
-    grpc_port_env = os.getenv("WEAVIATE_GRPC_PORT")
-    grpc_port = int(grpc_port_env) if grpc_port_env else None
+    grpc_port = int(os.getenv("WEAVIATE_GRPC_PORT", "50051"))
     collection = os.getenv("WEAVIATE_COLLECTION", "Document")
 
     return WeaviateVectorDB(url=url, api_key=api_key, grpc_port=grpc_port, collection=collection)
