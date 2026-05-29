@@ -148,6 +148,7 @@
     justify-content: space-between;
     margin-bottom: 8px;
     padding: 10px 12px;
+    flex-wrap: wrap;
 }
 
 .materials-list small {
@@ -304,6 +305,63 @@
 
 .refresh-sessions-button {
     margin-top: 0;
+}
+
+.review-examples-button {
+    margin-top: 0;
+}
+
+.examples-review-list {
+    border-top: 1px solid #d9e8f8;
+    display: flex;
+    flex-basis: 100%;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 12px;
+}
+
+.example-review-item {
+    align-items: flex-start;
+    background-color: #ffffff;
+    border: 1px solid #e5edf6;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+.example-review-item input {
+    margin-top: 4px;
+}
+
+.example-review-item span {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.example-review-item strong,
+.published-examples-list span {
+    overflow-wrap: anywhere;
+}
+
+.example-review-item strong {
+    color: #27364a;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.example-review-item em {
+    color: #4c5d70;
+    font-size: 0.9rem;
+    font-style: normal;
+    line-height: 1.4;
+}
+
+.publish-examples-button {
+    align-self: flex-start;
 }
 
 /* ── Preview action buttons row ── */

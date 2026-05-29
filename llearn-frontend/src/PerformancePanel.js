@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
  * @param {object} props - The component props.
  * @param {string} props.userId - The ID of the student to fetch performance for.
  */
-function PerformancePanel({ classId,userId }) {
+function PerformancePanel({ classId, userId, compact = false }) {
     
     const [performance, setPerformance] = useState(null); // special in memory function (in this case, set performance) that allows you to store data in performance
     const [error, setError] = useState('');
@@ -29,11 +29,21 @@ function PerformancePanel({ classId,userId }) {
     const assessment =
         (performance && (performance.parsed_message || performance.assessment)) ||
         null;
+    const objectiveScores = (Array.isArray(lesson_objectives) ? lesson_objectives : []).map((objectiveText, index) => {
+        const scoreKey = `objective_${index + 1}`;
+        const score = assessment?.[scoreKey];
+        return {
+            objectiveText,
+            pct: normalizeScoreToPercent(score),
+        };
+    });
+    const masteredObjectiveCount = objectiveScores.filter((item) => item.pct >= 100).length;
 
     useEffect(() => { // useEffect tells react what to run-post render, this is literally just saying do an API call
         const fetchPerformance = async () => {
             try {
-                const response = await fetch(`/api/performance/${userId}`);
+                const query = classId ? `?class_id=${encodeURIComponent(classId)}` : '';
+                const response = await fetch(`/api/performance/${userId}${query}`);
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Could not fetch performance data.');
@@ -51,7 +61,7 @@ function PerformancePanel({ classId,userId }) {
         fetchPerformance();
         const intervalId = setInterval(fetchPerformance, 10000);
         return () => clearInterval(intervalId);
-    }, [userId]); // and this is saying do it everytime the userId changes
+    }, [userId, classId]); // and this is saying do it everytime the userId changes
 
     useEffect(() => { // useEffect tells react what to run-post render, this is literally just saying do an API call
         const fetchObjectives = async () => {
@@ -97,15 +107,21 @@ return (
             
             {!performance && !error && <p>Loading performance data...</p>}
 
-            {performance && assessment && (
+            {performance && assessment && compact && (
+                <div>
+                    <h5>Learning Objectives:</h5>
+                    <p style={{ margin: '6px 0', fontSize: '14px' }}>
+                        {masteredObjectiveCount} / {objectiveScores.length} mastered
+                    </p>
+                </div>
+            )}
+
+            {performance && assessment && !compact && (
                 <div>
                     <h5>Objective Scores:</h5>
                     <ul style={{paddingLeft: '0', listStyleType: 'none',margin: '0', paddingTop:'8px'}}>
                         {/* 4. Map over the objectives array from state. */}
-                        {(Array.isArray(lesson_objectives) ? lesson_objectives : []).map((objectiveText, index) => { // map just allows you to set variables that iterate over the array and do the function below
-                            const scoreKey = `objective_${index + 1}`;
-                            const score = assessment?.[scoreKey];
-                            const pct = normalizeScoreToPercent(score);
+                        {objectiveScores.map(({ objectiveText, pct }) => { // map just allows you to set variables that iterate over the array and do the function below
                             return(
                             <li key={objectiveText} style={{ marginBottom: '12px', fontSize:'14px'}}>
                                 <span style={{ textTransform: 'capitalize' }}>{objectiveText}</span>
@@ -135,6 +151,27 @@ return (
                         <p style={{ marginTop: '10px', color: '#2e7d32' }}>
                             All objectives mastered.
                         </p>
+                    )}
+                </div>
+            )}
+            {performance && performance.example_performance && (
+                <div style={{ marginTop: '14px', borderTop: '2px solid #eee', paddingTop: '10px' }}>
+                    <h5>Example Problems:</h5>
+                    <p style={{ margin: '6px 0', fontSize: '14px' }}>
+                        {performance.example_performance.correct_count} / {performance.example_performance.assigned_count} correct
+                    </p>
+                    <p style={{ margin: '6px 0', fontSize: '13px', color: '#586273' }}>
+                        {performance.example_performance.attempted_count} attempted
+                    </p>
+                    {Array.isArray(performance.example_performance.examples) && performance.example_performance.examples.length > 0 && (
+                        <ul style={{ paddingLeft: '0', listStyleType: 'none', margin: '8px 0 0 0' }}>
+                            {performance.example_performance.examples.map((example) => (
+                                <li key={example.example_id} style={{ marginBottom: '8px', fontSize: '13px' }}>
+                                    <span>{example.correct ? 'Correct' : example.attempted ? 'Attempted' : 'Not attempted'}</span>
+                                    <div style={{ color: '#586273', overflowWrap: 'anywhere' }}>{example.title}</div>
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </div>
             )}

@@ -32,16 +32,97 @@
     border-radius: 12px;
     background-color: #fff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 0; /* PerformancePanel already has its own padding, so no extra here */
-    cursor: pointer;
+    padding: 10px;
     /* Ensure the wrapper takes full height of the grid cell if content is short */
     display: flex;
     flex-direction: column;
+    gap: 10px;
 }
 
 .performance-panel-wrapper:hover {
     transform: scale(1.03);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.performance-panel-wrapper.expanded {
+    grid-column: span 2;
+}
+
+.student-expand-button {
+    align-self: flex-end;
+    background-color: #ffffff;
+    border: 1px solid #00796b;
+    border-radius: 6px;
+    color: #00796b;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 7px 10px;
+}
+
+.student-expand-button:hover {
+    background-color: #e9f6f4;
+}
+
+.student-detail-panel {
+    border-top: 1px solid #e6edf4;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+}
+
+.student-detail-panel h3 {
+    color: #4a148c;
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.chat-log-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.chat-log-session {
+    background-color: #f7fbff;
+    border: 1px solid #d9e8f8;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.chat-log-session h4 {
+    color: #586273;
+    font-size: 0.9rem;
+    margin: 0 0 8px 0;
+}
+
+.chat-log-message {
+    background-color: #ffffff;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 8px;
+}
+
+.chat-log-message strong {
+    color: #26364a;
+    display: block;
+    font-size: 0.82rem;
+    margin-bottom: 4px;
+    text-transform: capitalize;
+}
+
+.chat-log-message p {
+    line-height: 1.4;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.chat-log-error {
+    color: #d32f2f;
+    font-weight: 500;
 }
 
 /* Optional: Make PerformancePanel fill its wrapper */
@@ -54,3 +135,9 @@
 
 /* Also, ensure your PerformancePanel.js has the `height: '75%'` removed from its outer div's inline style */
 /* The ClassPerformanceDashboard's grid will now manage its size naturally. */
+
+@media (max-width: 800px) {
+    .performance-panel-wrapper.expanded {
+        grid-column: span 1;
+    }
+}

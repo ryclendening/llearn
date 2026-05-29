@@ -38,6 +38,187 @@
     overflow: hidden; /* Ensure content inside respects rounded corners */
 }
 
+.practice-panel {
+    background-color: #f7fbff;
+    border: 1px solid #e0e8f0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 48%;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.practice-header {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.practice-header h3 {
+    color: #4a148c;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.practice-header button,
+.practice-submit,
+.practice-result button {
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+}
+
+.practice-header button:hover,
+.practice-submit:hover:not(:disabled),
+.practice-result button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.practice-header button:disabled,
+.practice-submit:disabled,
+.practice-result button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.practice-answer {
+    border: 1px solid #d4dce8;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font: inherit;
+    padding: 9px 10px;
+    width: 100%;
+}
+
+.practice-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.practice-card {
+    background-color: #ffffff;
+    border: 1px solid #d9e8f8;
+    border-radius: 8px;
+    color: #26364a;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    text-align: left;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.practice-card:hover,
+.practice-card.active {
+    background-color: #eef7ff;
+    border-color: #8bbce9;
+    box-shadow: 0 3px 10px rgba(23, 68, 111, 0.12);
+}
+
+.practice-card.solved {
+    background-color: #edf8ef;
+    border-color: #7bc58a;
+    box-shadow: 0 3px 10px rgba(31, 107, 44, 0.12);
+}
+
+.practice-card.solved .practice-card-meta {
+    color: #1f6b2c;
+}
+
+.practice-card-meta {
+    color: #586273;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.practice-card-text {
+    display: -webkit-box;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    max-height: 96px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+}
+
+.practice-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.practice-problem {
+    background-color: #ffffff;
+    border: 1px solid #e3ebf5;
+    border-radius: 6px;
+    color: #26364a;
+    line-height: 1.45;
+    margin: 0;
+    padding: 10px;
+    white-space: pre-wrap;
+}
+
+.practice-answer {
+    min-height: 92px;
+    resize: vertical;
+}
+
+.practice-submit {
+    align-self: flex-start;
+}
+
+.practice-result,
+.practice-solution {
+    border-radius: 6px;
+    line-height: 1.45;
+    padding: 10px;
+}
+
+.practice-result.correct {
+    background-color: #edf8ef;
+    border: 1px solid #b7dfbf;
+    color: #1f6b2c;
+}
+
+.practice-result.incorrect {
+    background-color: #fff7ed;
+    border: 1px solid #f4c99b;
+    color: #7b4b16;
+}
+
+.practice-result p,
+.practice-solution p,
+.practice-error,
+.practice-empty {
+    margin: 6px 0 0 0;
+}
+
+.practice-solution {
+    background-color: #ffffff;
+    border: 1px solid #d9e8f8;
+    color: #26364a;
+    white-space: pre-wrap;
+}
+
+.practice-error {
+    color: #d32f2f;
+    font-weight: 500;
+}
+
+.practice-empty {
+    color: #586273;
+}
+
 /* Chat messages area */
 .chat-messages {
     flex: 1;
@@ -65,6 +246,10 @@
 
 .chat-message.bot strong {
     color: #8a2be2; /* A shade of purple for bot messages */
+}
+
+.chat-message.judge strong {
+    color: #b45309;
 }
 
 .message-citations {
@@ -136,6 +321,29 @@
     transform: translateY(1px); /* Slight press effect */
 }
 
+.chat-input-area .clear-example-button {
+    background-color: #ffffff;
+    border: 1px solid #6c757d;
+    color: #495057;
+}
+
+.chat-input-area .clear-example-button:hover {
+    background-color: #eef1f4;
+}
+
+.chat-input-area .check-answer-button {
+    background-color: #28a745;
+}
+
+.chat-input-area .check-answer-button:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+.chat-input-area .check-answer-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
 
 /* Performance Panel (Right Side) */
 .performance-panel-area {
@@ -145,12 +353,14 @@
     background-color: #f7f9fc; /* Slightly different background for distinction */
     display: flex;
     flex-direction: column;
+    gap: 14px;
     /* Apply a similar card style to integrate it better */
     border-radius: 8px; /* Match the chat panel's rounded corners */
+    overflow-y: auto;
 }
 
 /* Make the PerformancePanel itself fill its space */
-.performance-panel-area > div {
+.performance-panel-area > div:not(.practice-panel) {
     flex-grow: 1; /* Allow the PerformancePanel component to grow */
 }
 
@@ -171,6 +381,10 @@
         width: auto; /* Allow performance panel to take full width */
         border-top: 1px solid #eee; /* Separator when stacked */
         border-radius: 0; /* Remove specific border radius here to blend */
+    }
+
+    .practice-panel {
+        max-height: none;
     }
 }
 

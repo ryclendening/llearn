@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.session import Base
@@ -36,6 +36,8 @@ class Lesson(Base):
     assessments: Mapped[list["Assessment"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
     materials: Mapped[list["CourseMaterial"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
     chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
+    published_examples: Mapped[list["PublishedExample"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
+    example_attempts: Mapped[list["ExampleAttempt"]] = relationship(back_populates="lesson", cascade="all, delete-orphan")
 
 
 class LearningObjective(Base):
@@ -59,6 +61,7 @@ class Student(Base):
     enrollments: Mapped[list["Enrollment"]] = relationship(back_populates="student", cascade="all, delete-orphan")
     assessments: Mapped[list["Assessment"]] = relationship(back_populates="student", cascade="all, delete-orphan")
     chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="student", cascade="all, delete-orphan")
+    example_attempts: Mapped[list["ExampleAttempt"]] = relationship(back_populates="student", cascade="all, delete-orphan")
 
 
 class Enrollment(Base):
@@ -123,6 +126,62 @@ class CourseMaterial(Base):
     status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
     chunk_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extraction_status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False)
+    extraction_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     lesson: Mapped[Lesson] = relationship(back_populates="materials")
+    examples: Mapped[list["ExtractedExampleProblem"]] = relationship(back_populates="material", cascade="all, delete-orphan")
+
+
+class ExtractedExampleProblem(Base):
+    __tablename__ = "extracted_example_problems"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    material_id: Mapped[int] = mapped_column(ForeignKey("course_materials.id"), nullable=False, index=True)
+    page_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    page_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    problem_text: Mapped[str] = mapped_column(Text, nullable=False)
+    solution_text: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="draft", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    material: Mapped[CourseMaterial] = relationship(back_populates="examples")
+    published_classes: Mapped[list["PublishedExample"]] = relationship(back_populates="example", cascade="all, delete-orphan")
+    attempts: Mapped[list["ExampleAttempt"]] = relationship(back_populates="example", cascade="all, delete-orphan")
+
+
+class PublishedExample(Base):
+    __tablename__ = "published_examples"
+    __table_args__ = (UniqueConstraint("lesson_id", "example_id", name="uq_published_example_lesson_example"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), nullable=False, index=True)
+    example_id: Mapped[int] = mapped_column(ForeignKey("extracted_example_problems.id"), nullable=False, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    lesson: Mapped[Lesson] = relationship(back_populates="published_examples")
+    example: Mapped[ExtractedExampleProblem] = relationship(back_populates="published_classes")
+
+
+class ExampleAttempt(Base):
+    __tablename__ = "example_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    student_id: Mapped[str] = mapped_column(ForeignKey("students.id"), nullable=False, index=True)
+    lesson_id: Mapped[str] = mapped_column(ForeignKey("lessons.id"), nullable=False, index=True)
+    example_id: Mapped[int] = mapped_column(ForeignKey("extracted_example_problems.id"), nullable=False, index=True)
+    submitted_answer: Mapped[str] = mapped_column(Text, nullable=False)
+    judgment: Mapped[dict] = mapped_column(JSON, nullable=False)
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    feedback: Mapped[str] = mapped_column(Text, nullable=False)
+    reasoning_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    student: Mapped[Student] = relationship(back_populates="example_attempts")
+    lesson: Mapped[Lesson] = relationship(back_populates="example_attempts")
+    example: Mapped[ExtractedExampleProblem] = relationship(back_populates="attempts")

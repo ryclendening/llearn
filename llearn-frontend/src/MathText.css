@@ -1,0 +1,48 @@
+.math-text {
+    white-space: normal;
+}
+
+.math-text .math-paragraph {
+    white-space: pre-wrap;
+}
+
+.math-text .katex-display {
+    background-color: #ffffff;
+    border: 1px solid #e1e8f0;
+    border-radius: 6px;
+    margin: 10px 0;
+    overflow-x: auto;
+    padding: 10px 12px;
+}
+
+.math-text .katex {
+    font-size: 1.04em;
+}
+
+.citation-superscript {
+    background-color: #eef5ff;
+    border: 1px solid #8bb2de;
+    border-radius: 999px;
+    color: #17446f;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.68em;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 2px;
+    min-width: 16px;
+    padding: 2px 4px;
+    position: relative;
+    text-decoration: none;
+    top: -0.45em;
+}
+
+.citation-superscript:hover:not(:disabled) {
+    background-color: #dbeaff;
+    border-color: #5d90c9;
+}
+
+.citation-superscript:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
