@@ -212,6 +212,27 @@ def list_chat_logs(db: Session, *, student_id: str, lesson_id: str) -> list[dict
     return logs
 
 
+def delete_chat_session(
+    db: Session,
+    *,
+    session_id: int,
+    student_id: str,
+    lesson_id: str,
+) -> bool:
+    chat_session = db.scalar(
+        select(ChatSession).where(
+            ChatSession.id == session_id,
+            ChatSession.student_id == student_id,
+            ChatSession.lesson_id == lesson_id,
+        )
+    )
+    if not chat_session:
+        return False
+    db.delete(chat_session)
+    db.commit()
+    return True
+
+
 def save_assessment(
     db: Session,
     *,
@@ -364,8 +385,8 @@ def create_extracted_examples(
         for example in list_material_examples(db, material_id) or []
     }
     for example in examples:
-        problem_text = str(example.get("problem_text") or "").strip()
-        solution_text = str(example.get("solution_text") or "").strip()
+        problem_text = _clean_db_text(example.get("problem_text")).strip()
+        solution_text = _clean_db_text(example.get("solution_text")).strip()
         if not problem_text or not solution_text:
             continue
         example_key = _example_key(problem_text)
@@ -386,10 +407,19 @@ def create_extracted_examples(
         )
 
     db.add_all(created)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     for example in created:
         db.refresh(example)
     return created
+
+
+def _clean_db_text(value: object) -> str:
+    # PostgreSQL text fields reject NUL bytes, which can appear in PDF extraction output.
+    return str(value or "").replace("\x00", "")
 
 
 def list_material_examples(db: Session, material_id: int) -> list[ExtractedExampleProblem] | None:

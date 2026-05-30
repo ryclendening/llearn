@@ -144,35 +144,40 @@ async def _upload_material_for_classes(
 
     extraction_error = None
     extracted_count = 0
+    completed_material_ids = [material.id for material in completed_materials]
+    extraction_materials = completed_materials
     try:
         extracted_examples = extract_example_problems(str(storage_path))
-        for material in completed_materials:
+        extraction_materials = []
+        for material_id in completed_material_ids:
             created_examples = create_extracted_examples(
                 db,
-                material_id=material.id,
+                material_id=material_id,
                 examples=extracted_examples,
             )
             extracted_count += len(created_examples)
-            update_course_material_extraction_result(
+            extraction_materials.append(update_course_material_extraction_result(
                 db,
-                material_id=material.id,
+                material_id=material_id,
                 status="ready",
-            )
+            ))
     except Exception as exc:
+        db.rollback()
         extraction_error = str(exc)
-        for material in completed_materials:
-            update_course_material_extraction_result(
+        extraction_materials = []
+        for material_id in completed_material_ids:
+            extraction_materials.append(update_course_material_extraction_result(
                 db,
-                material_id=material.id,
+                material_id=material_id,
                 status="failed",
                 error_message=extraction_error,
-            )
+            ))
 
     return {
-        "materials": [course_material_to_payload(material) for material in completed_materials],
+        "materials": [course_material_to_payload(material) for material in extraction_materials],
         "filename": original_name,
         "class_ids": class_ids,
-        "chunk_count": sum(material.chunk_count for material in completed_materials),
+        "chunk_count": sum(material.chunk_count for material in extraction_materials),
         "extracted_example_count": extracted_count,
         "extraction_error": extraction_error,
     }

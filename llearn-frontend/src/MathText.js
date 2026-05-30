@@ -7,6 +7,10 @@ import './MathText.css';
 
 function MathText({ text, className = '', citations = [], onCitationClick }) {
     const parts = splitCitationMarkers(String(text || ''), citations);
+    const citedSourceIds = new Set(parts.filter((part) => part.type === 'citation').map((part) => part.sourceId));
+    const uncitedCitations = (citations || [])
+        .map((citation, index) => ({ citation, number: index + 1 }))
+        .filter(({ citation }) => citation?.source_id && !citedSourceIds.has(citation.source_id));
 
     return (
         <span className={`math-text ${className}`}>
@@ -37,6 +41,22 @@ function MathText({ text, className = '', citations = [], onCitationClick }) {
                         </ReactMarkdown>
                     )
             ))}
+            {uncitedCitations.length > 0 && (
+                <span className="citation-fallbacks">
+                    {uncitedCitations.map(({ citation, number }) => (
+                        <button
+                            key={`fallback-${citation.source_id}`}
+                            type="button"
+                            className="citation-superscript"
+                            onClick={() => onCitationClick?.(citation)}
+                            disabled={!citation?.material_id}
+                            title={citationTitle(citation)}
+                        >
+                            {number}
+                        </button>
+                    ))}
+                </span>
+            )}
         </span>
     );
 }

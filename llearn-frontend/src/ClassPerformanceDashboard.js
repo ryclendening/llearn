@@ -12,6 +12,7 @@ function ClassPerformanceDashboard() {
     const [chatLogs, setChatLogs] = useState({});
     const [chatLogLoading, setChatLogLoading] = useState('');
     const [chatLogError, setChatLogError] = useState('');
+    const [deletingSessionId, setDeletingSessionId] = useState('');
 
     useEffect(() => {
         const fetchClassRoster = async () => {
@@ -59,14 +60,42 @@ function ClassPerformanceDashboard() {
         }
     };
 
+    const handleDeleteChatSession = async (userId, sessionId) => {
+        const confirmed = window.confirm(`Delete chat session ${sessionId} for ${userId}? This removes the stored chat log for that session.`);
+        if (!confirmed) {
+            return;
+        }
+
+        setDeletingSessionId(`${userId}:${sessionId}`);
+        setChatLogError('');
+        try {
+            const response = await fetch(
+                `/api/classes/${encodeURIComponent(classId)}/students/${encodeURIComponent(userId)}/chat-sessions/${encodeURIComponent(sessionId)}`,
+                { method: 'DELETE' }
+            );
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Could not delete chat session.');
+            }
+            setChatLogs((currentLogs) => ({
+                ...currentLogs,
+                [userId]: (currentLogs[userId] || []).filter((session) => String(session.session_id) !== String(sessionId)),
+            }));
+        } catch (err) {
+            setChatLogError(err.message || 'Failed to delete chat session.');
+        } finally {
+            setDeletingSessionId('');
+        }
+    };
+
     return (
         <div className="dashboard-container"> {/* Use a class for external CSS */}
             <HomeButton />
             <h2 className="dashboard-title"> {/* Use a class for external CSS */}
-                🎓 Performance Panels for Class: <span style={{ color: '#00796b' }}>{classId}</span>
+                Performance Panels for Class: <span style={{ color: 'var(--primary)' }}>{classId}</span>
             </h2>
 
-            {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+            {error && <p style={{ color: 'var(--danger)', textAlign: 'center' }}>{error}</p>}
 
             {/* The main grid container */}
             <div className="performance-grid">
@@ -94,7 +123,19 @@ function ClassPerformanceDashboard() {
                                 <div className="chat-log-scroll">
                                     {(chatLogs[userId] || []).map((session) => (
                                         <div key={session.session_id} className="chat-log-session">
-                                            <h4>Session {session.session_id}</h4>
+                                            <div className="chat-log-session-header">
+                                                <h4>Session {session.session_id}</h4>
+                                                {Number.isInteger(session.session_id) && (
+                                                    <button
+                                                        type="button"
+                                                        className="delete-chat-session-button"
+                                                        disabled={deletingSessionId === `${userId}:${session.session_id}`}
+                                                        onClick={() => handleDeleteChatSession(userId, session.session_id)}
+                                                    >
+                                                        {deletingSessionId === `${userId}:${session.session_id}` ? 'Deleting...' : 'Delete Session'}
+                                                    </button>
+                                                )}
+                                            </div>
                                             {session.messages.map((message) => (
                                                 <div key={message.id} className={`chat-log-message ${message.role}`}>
                                                     <strong>{message.role}</strong>

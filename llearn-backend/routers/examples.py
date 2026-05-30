@@ -55,6 +55,7 @@ async def extract_material_examples(material_id: int, db: Session = Depends(get_
         extracted = extract_example_problems(material.storage_path)
         created = create_extracted_examples(db, material_id=material_id, examples=extracted)
     except Exception as exc:
+        db.rollback()
         raise HTTPException(status_code=502, detail="Example extraction failed.") from exc
 
     examples = list_material_examples(db, material_id) or []
