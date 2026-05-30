@@ -6,7 +6,7 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa);
+    background: var(--page-bg);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
     box-sizing: border-box;
@@ -14,16 +14,17 @@
 
 .objectives-page-title {
     font-size: 2.5rem;
-    color: #4a148c;
+    color: var(--text);
     margin-bottom: 30px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+    font-weight: 700;
 }
 
 .objectives-form-card {
-    background-color: #ffffff;
+    background-color: var(--surface);
     padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     max-width: 600px;
     width: 100%;
     box-sizing: border-box;
@@ -43,10 +44,10 @@
 /* ── Generator section header ── */
 .objectives-form-card h2 {
     font-size: 1.4rem;
-    color: #4a148c;
+    color: var(--secondary);
     margin: 0;
     padding-bottom: 12px;
-    border-bottom: 2px solid #f0f0f0;
+    border-bottom: 2px solid var(--border);
 }
 
 .form-group {
@@ -57,7 +58,7 @@
 
 .form-group label {
     font-size: 1.1rem;
-    color: #333;
+    color: var(--text);
     font-weight: 600;
 }
 
@@ -65,36 +66,36 @@
     padding: 12px 15px;
     width: 100%;
     font-size: 1rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     outline: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
     box-sizing: border-box;
 }
 
 .form-input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* ── Generated plan preview card ── */
 .generated-preview {
     margin-top: 1.5rem;
     padding: 1.25rem;
-    background-color: #f8f4ff;
-    border: 1px solid #d1b8f5;
-    border-radius: 10px;
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
 .generated-preview h3 {
     font-size: 1.2rem;
-    color: #4a148c;
+    color: var(--secondary);
     margin: 0 0 4px 0;
 }
 
 .generated-preview .lesson-id-label {
     font-size: 0.85rem;
-    color: #888;
+    color: var(--text-soft);
     margin-bottom: 12px;
 }
 
@@ -107,27 +108,27 @@
 .generated-preview ul li {
     padding: 8px 12px;
     margin-bottom: 6px;
-    background-color: #ffffff;
-    border: 1px solid #e0d4f7;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.95rem;
-    color: #333;
+    color: var(--text);
     line-height: 1.4;
 }
 
 .generated-preview ul li::before {
     content: "✓ ";
-    color: #7c3aed;
+    color: var(--success);
     font-weight: bold;
 }
 
 .materials-list {
-    border-top: 2px solid #f0f0f0;
+    border-top: 2px solid var(--border);
     padding-top: 16px;
 }
 
 .materials-list h3 {
-    color: #4a148c;
+    color: var(--secondary);
     font-size: 1.1rem;
     margin: 0 0 10px 0;
 }
@@ -140,9 +141,9 @@
 
 .materials-list li {
     align-items: flex-start;
-    background-color: #f7fbff;
-    border: 1px solid #d9e8f8;
-    border-radius: 8px;
+    background-color: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     display: flex;
     gap: 12px;
     justify-content: space-between;
@@ -152,7 +153,7 @@
 }
 
 .materials-list small {
-    color: #586273;
+    color: var(--text-muted);
 }
 
 .material-details {
@@ -171,11 +172,11 @@
 }
 
 .class-picker-toggle {
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     box-sizing: border-box;
-    color: #333333;
+    color: var(--text);
     cursor: pointer;
     font-size: 1rem;
     padding: 12px 15px;
@@ -184,16 +185,16 @@
 }
 
 .class-picker-toggle:disabled {
-    background-color: #f3f3f3;
-    color: #888888;
+    background-color: var(--surface-muted);
+    color: var(--text-soft);
     cursor: not-allowed;
 }
 
 .class-picker-menu {
-    background-color: #ffffff;
-    border: 1px solid #d9e8f8;
-    border-radius: 8px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -218,7 +219,7 @@
 }
 
 .class-picker-option:hover {
-    background-color: #f7fbff;
+    background-color: var(--surface-muted);
 }
 
 .class-picker-option input {
@@ -232,7 +233,7 @@
 }
 
 .class-picker-option small {
-    color: #586273;
+    color: var(--text-muted);
 }
 
 .sessions-header {
@@ -253,9 +254,9 @@
 
 .session-list-item {
     align-items: center;
-    background-color: #f7fbff;
-    border: 1px solid #d9e8f8;
-    border-radius: 8px;
+    background-color: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     display: flex;
     gap: 16px;
     justify-content: space-between;
@@ -277,14 +278,14 @@
 .session-details span,
 .session-details small,
 .empty-sessions-message {
-    color: #586273;
+    color: var(--text-muted);
 }
 
 .delete-session-button {
-    background-color: #ffffff;
-    border: 1px solid #dc3545;
-    border-radius: 8px;
-    color: #dc3545;
+    background-color: var(--surface);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+    color: var(--danger);
     cursor: pointer;
     flex-shrink: 0;
     font-size: 0.95rem;
@@ -293,13 +294,13 @@
 }
 
 .delete-session-button:hover:not(:disabled) {
-    background-color: #dc3545;
-    color: #ffffff;
+    background-color: var(--danger-solid);
+    color: var(--on-danger);
 }
 
 .delete-session-button:disabled {
-    border-color: #cccccc;
-    color: #888888;
+    border-color: var(--border-strong);
+    color: var(--text-soft);
     cursor: not-allowed;
 }
 
@@ -312,7 +313,7 @@
 }
 
 .examples-review-list {
-    border-top: 1px solid #d9e8f8;
+    border-top: 1px solid var(--border);
     display: flex;
     flex-basis: 100%;
     flex-direction: column;
@@ -323,9 +324,9 @@
 
 .example-review-item {
     align-items: flex-start;
-    background-color: #ffffff;
-    border: 1px solid #e5edf6;
-    border-radius: 8px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     display: flex;
     gap: 10px;
     padding: 10px;
@@ -348,13 +349,13 @@
 }
 
 .example-review-item strong {
-    color: #27364a;
+    color: var(--text);
     font-size: 0.95rem;
     line-height: 1.4;
 }
 
 .example-review-item em {
-    color: #4c5d70;
+    color: var(--text-muted);
     font-size: 0.9rem;
     font-style: normal;
     line-height: 1.4;
@@ -383,8 +384,8 @@
 }
 
 .remove-objective-button {
-    background-color: #dc3545;
-    color: white;
+    background-color: var(--danger-solid);
+    color: var(--on-danger);
     border: none;
     border-radius: 50%;
     width: 30px;
@@ -399,15 +400,15 @@
 }
 
 .remove-objective-button:hover {
-    background-color: #c82333;
+    background-color: var(--danger-solid-hover);
 }
 
 .add-objective-button {
-    background-color: #28a745;
-    color: white;
+    background-color: var(--success-solid);
+    color: var(--on-success);
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
@@ -415,41 +416,41 @@
 }
 
 .add-objective-button:hover:not(:disabled) {
-    background-color: #218838;
+    background-color: var(--success-solid-hover);
 }
 
 .add-objective-button:disabled {
-    background-color: #cccccc;
+    background-color: var(--border-strong);
     cursor: not-allowed;
 }
 
 /* ── Discard button ── */
 .discard-button {
-    background-color: #ffffff;
-    color: #dc3545;
-    border: 1px solid #dc3545;
+    background-color: var(--surface);
+    color: var(--danger);
+    border: 1px solid var(--danger);
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .discard-button:hover {
-    background-color: #dc3545;
-    color: #ffffff;
+    background-color: var(--danger-solid);
+    color: var(--on-danger);
 }
 
 /* Submission feedback */
 .error-message {
-    color: #d32f2f;
+    color: var(--danger);
     margin-top: 10px;
     text-align: center;
     font-weight: 500;
 }
 
 .success-message {
-    color: #28a745;
+    color: var(--success);
     margin-top: 10px;
     text-align: center;
     font-weight: 500;
@@ -457,11 +458,11 @@
 
 /* Submit button */
 .submit-button {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--primary-solid);
+    color: var(--on-primary);
     border: none;
     padding: 15px 30px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-size: 1.2rem;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.1s ease;
@@ -469,8 +470,8 @@
 }
 
 .submit-button:hover:not(:disabled) {
-    background-color: #0056b3;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--primary-solid-hover);
+    box-shadow: var(--shadow-subtle);
 }
 
 .submit-button:active:not(:disabled) {
@@ -478,7 +479,7 @@
 }
 
 .submit-button:disabled {
-    background-color: #cccccc;
+    background-color: var(--border-strong);
     cursor: not-allowed;
 }
 

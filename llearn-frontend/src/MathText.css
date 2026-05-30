@@ -7,8 +7,8 @@
 }
 
 .math-text .katex-display {
-    background-color: #ffffff;
-    border: 1px solid #e1e8f0;
+    background-color: var(--surface-subtle);
+    border: 1px solid var(--border);
     border-radius: 6px;
     margin: 10px 0;
     overflow-x: auto;
@@ -20,10 +20,10 @@
 }
 
 .citation-superscript {
-    background-color: #eef5ff;
-    border: 1px solid #8bb2de;
+    background-color: var(--primary-soft);
+    border: 1px solid var(--border-strong);
     border-radius: 999px;
-    color: #17446f;
+    color: var(--primary);
     cursor: pointer;
     display: inline-flex;
     font-size: 0.68em;
@@ -38,11 +38,17 @@
 }
 
 .citation-superscript:hover:not(:disabled) {
-    background-color: #dbeaff;
-    border-color: #5d90c9;
+    background-color: var(--secondary-soft);
+    border-color: var(--primary);
 }
 
 .citation-superscript:disabled {
     cursor: not-allowed;
     opacity: 0.55;
+}
+
+.citation-fallbacks {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 3px;
 }

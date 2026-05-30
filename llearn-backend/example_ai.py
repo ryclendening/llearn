@@ -120,7 +120,7 @@ def _page_blocks(pages: list[dict]) -> list[str]:
     blocks = []
     total_length = 0
     for page in pages:
-        block = f"Page {page['page']}:\n{page['text']}"
+        block = f"Page {page['page']}:\n{_clean_pdf_text(page['text'])}"
         if total_length + len(block) > MAX_EXTRACTION_CHARS:
             break
         blocks.append(block)
@@ -130,16 +130,17 @@ def _page_blocks(pages: list[dict]) -> list[str]:
 
 def _heuristic_extract_examples(pages: list[dict]) -> list[dict]:
     examples = []
-    full_text = "\n\n".join(f"[PAGE {page['page']}]\n{page['text']}" for page in pages)
+    full_text = "\n\n".join(f"[PAGE {page['page']}]\n{_clean_pdf_text(page['text'])}" for page in pages)
     pattern = re.compile(
-        r"(?:^|\n)(?:Example|EXAMPLE)\s+([0-9A-Za-z.\-]+)?(?P<body>.*?)(?=(?:\n(?:Example|EXAMPLE)\s+[0-9A-Za-z.\-]+)|\Z)",
+        r"(?:^|\n)\s*(?:[u•]\s*)?(?P<heading>(?:Example|EXAMPLE)\s+[0-9A-Za-z.\-]+)\b"
+        r"(?P<body>.*?)(?=(?:\n\s*(?:[u•]\s*)?(?:Example|EXAMPLE)\s+[0-9A-Za-z.\-]+\b)|\Z)",
         re.DOTALL,
     )
     for match in pattern.finditer(full_text):
-        body = match.group("body").strip()
+        body = f"{match.group('heading')} {match.group('body')}".strip()
         if len(body) < 80:
             continue
-        solution_match = re.search(r"\b(Solution|Answer)\b\s*:?\s*", body, flags=re.IGNORECASE)
+        solution_match = re.search(r"(?:^|\n)\s*(Solution|Answer)\b[.:]?\s*", body, flags=re.IGNORECASE)
         if not solution_match:
             continue
         problem_text = body[:solution_match.start()].strip()
@@ -148,7 +149,7 @@ def _heuristic_extract_examples(pages: list[dict]) -> list[dict]:
         solution_text = _trim_solution(solution_text)
         if len(problem_text) < 20 or len(solution_text) < 20:
             continue
-        pages_in_body = [int(value) for value in re.findall(r"\[PAGE (\d+)\]", body)]
+        pages_in_body = _pages_for_match(full_text, match.start(), f"{problem_text}\n{solution_text}")
         examples.append({
             "problem_text": problem_text,
             "solution_text": solution_text,
@@ -159,11 +160,44 @@ def _heuristic_extract_examples(pages: list[dict]) -> list[dict]:
     return examples
 
 
+def _pages_for_match(full_text: str, start: int, extracted_text: str) -> list[int]:
+    pages = [int(value) for value in re.findall(r"\[PAGE (\d+)\]", extracted_text)]
+    preceding_markers = list(re.finditer(r"\[PAGE (\d+)\]", full_text[:start]))
+    if preceding_markers:
+        pages.append(int(preceding_markers[-1].group(1)))
+    return sorted(set(pages))
+
+
 def _trim_solution(solution_text: str) -> str:
-    stop_match = re.search(r"\n\s*(?:Checkpoint|Try It|Exercises|Practice|Problems)\b", solution_text, flags=re.IGNORECASE)
+    end_marker_match = re.search(r"\s*⌅", solution_text)
+    if end_marker_match:
+        solution_text = solution_text[:end_marker_match.start()]
+    stop_match = re.search(
+        r"\n\s*(?:[‰u•]\s*)?(?:QUESTION|Question|Checkpoint|Try It|Summary|Exercises|Practice|Problems|Definition|Notation)\b",
+        solution_text,
+        flags=re.IGNORECASE,
+    )
     if stop_match:
         solution_text = solution_text[:stop_match.start()]
     return solution_text.strip()
+
+
+def _clean_pdf_text(text: str) -> str:
+    replacements = {
+        "\x00": "-",
+        "\ufb01": "fi",
+        "\ufb02": "fl",
+        "\u2212": "-",
+        "\u2013": "-",
+        "\u2014": "-",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"w h e n", "when", text)
+    text = re.sub(r"o v e r", "over", text)
+    text = re.sub(r"i st h e", "is the", text)
+    return text.strip()
 
 
 def _dedupe_examples(examples: list[dict]) -> list[dict]:
@@ -181,8 +215,8 @@ def _dedupe_examples(examples: list[dict]) -> list[dict]:
 
 def _normalize_example(example: dict) -> dict:
     return {
-        "problem_text": str(example.get("problem_text") or "").strip(),
-        "solution_text": str(example.get("solution_text") or "").strip(),
+        "problem_text": _clean_pdf_text(str(example.get("problem_text") or "")).strip(),
+        "solution_text": _clean_pdf_text(str(example.get("solution_text") or "")).strip(),
         "page_start": _optional_int(example.get("page_start")),
         "page_end": _optional_int(example.get("page_end")),
         "confidence": _bounded_float(example.get("confidence"), default=0.0),

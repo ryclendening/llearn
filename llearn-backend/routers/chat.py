@@ -9,6 +9,7 @@ from db.crud import (
     add_message,
     create_chat_session,
     get_lesson,
+    get_latest_assessment,
     get_student_lesson_id,
     list_published_examples,
     save_assessment,
@@ -56,6 +57,10 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
         ]
         chat_session = create_chat_session(db, student_id=user_id, lesson_id=lesson_id)
         config = {"configurable": {"thread_id": user_id}}
+        latest_assessment = get_latest_assessment(db, user_id, lesson_id=lesson_id)
+        persisted_scores = latest_assessment.scores if latest_assessment else None
+        persisted_mastered = bool(latest_assessment.mastered) if latest_assessment else False
+        default_scores = {f"objective_{i+1}": 0 for i in range(len(objectives))}
 
         existing = tutor_graph.get_state(config)
         if not existing or not existing.values:
@@ -64,16 +69,27 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                 "student_id": user_id,
                 "lesson_id": lesson_id,
                 "objectives": objectives,
-                "assessment": {f"objective_{i+1}": 0 for i in range(len(objectives))},
-                "mastered": False,
+                "assessment": persisted_scores or default_scores,
+                "mastered": persisted_mastered,
                 "protected_examples": protected_examples,
+                "mastery_notice_sent": persisted_mastered,
             })
         else:
-            tutor_graph.update_state(config, {
+            state_update = {
                 "lesson_id": lesson_id,
                 "objectives": objectives,
                 "protected_examples": protected_examples,
-            })
+            }
+            if persisted_scores:
+                state_update["assessment"] = persisted_scores
+                state_update["mastered"] = persisted_mastered
+                state_update["mastery_notice_sent"] = bool(
+                    existing.values.get("mastery_notice_sent", False) or persisted_mastered
+                )
+            tutor_graph.update_state(config, state_update)
+
+        current_state = tutor_graph.get_state(config).values
+        mastery_notice_sent = bool(current_state.get("mastery_notice_sent", False) or current_state.get("mastered", False))
 
         try:
             while True:
@@ -98,7 +114,9 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
                         )
                     await websocket.send_text(_chat_payload(teacher_reply, result.get("citations", [])))
 
-                    if result.get("mastered"):
+                    if result.get("mastered") and not mastery_notice_sent:
+                        mastery_notice_sent = True
+                        tutor_graph.update_state(config, {"mastery_notice_sent": True})
                         await websocket.send_text(_chat_payload(
                             "All lesson objectives are mastered. You can keep asking questions or work on example problems.",
                             message_type="system",

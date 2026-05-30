@@ -4,10 +4,12 @@ import HomePage from './HomePage';
 import ChatPage from './ChatPage';
 import ClassPerformanceDashboard from './ClassPerformanceDashboard';
 import LearningObjectivesForm from './LearningObjectivesForm';
+import ThemeToggle from './ThemeToggle';
 
 function App() {
     return (
         <Router>
+            <ThemeToggle />
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/chat/:classId/:userId" element={<ChatPage />} />

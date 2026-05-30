@@ -29,6 +29,7 @@ class TutorState(TypedDict):
     retrieved_sources: list[dict]
     citations: list[dict]
     protected_examples: list[dict]
+    mastery_notice_sent: bool
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -103,6 +104,8 @@ def _plain_float(value) -> float | None:
 
 def _citations_for_reply(reply: str, sources: list[dict]) -> list[dict]:
     cited_ids = set(re.findall(r"\[(source_\d+)\]", reply))
+    if not cited_ids:
+        return sources
     return [source for source in sources if source.get("source_id") in cited_ids]
 
 

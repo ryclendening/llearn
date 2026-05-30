@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from db.crud import get_example_performance, get_latest_assessment, get_student, list_chat_logs
+from db.crud import delete_chat_session, get_example_performance, get_latest_assessment, get_student, list_chat_logs
 from db.session import get_db
 
 
@@ -39,3 +39,13 @@ async def get_student_chat_logs(class_id: str, user_id: str, db: Session = Depen
     if not get_student(db, user_id):
         raise HTTPException(status_code=404, detail="Student not found")
     return {"sessions": list_chat_logs(db, student_id=user_id, lesson_id=class_id)}
+
+
+@router.delete("/classes/{class_id}/students/{user_id}/chat-sessions/{session_id}")
+async def delete_student_chat_session(class_id: str, user_id: str, session_id: int, db: Session = Depends(get_db)):
+    if not get_student(db, user_id):
+        raise HTTPException(status_code=404, detail="Student not found")
+    deleted = delete_chat_session(db, session_id=session_id, student_id=user_id, lesson_id=class_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    return {"message": "Chat session deleted"}

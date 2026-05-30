@@ -6,7 +6,7 @@
     justify-content: center; /* Center vertically */
     align-items: center; /* Center horizontally */
     min-height: 100vh; /* Take full viewport height */
-    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa); /* Consistent gradient background */
+    background: var(--page-bg);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
     box-sizing: border-box;
@@ -15,19 +15,20 @@
 
 .homepage-title {
     font-size: 2.5rem; /* Larger title */
-    color: #4a148c; /* Dark purple, consistent with other titles */
+    color: var(--text);
     margin-bottom: 30px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05); /* Subtle text shadow */
+    font-weight: 700;
 }
 
 .join-form {
     display: flex;
     flex-direction: column; /* Stack input and button on smaller screens */
     gap: 15px; /* Space between form elements */
-    background-color: #ffffff; /* White background for the form container */
+    background-color: var(--surface);
     padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* More pronounced shadow for a card effect */
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     max-width: 450px; /* Limit form width */
     width: 100%; /* Make it responsive */
     box-sizing: border-box;
@@ -38,37 +39,37 @@
     padding: 12px 15px;
     width: 100%; /* Take full width of its container */
     font-size: 1.1rem;
-    border: 1px solid #ddd;
-    border-radius: 8px; /* Rounded corners */
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     outline: none; /* Remove default focus outline */
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
     box-sizing: border-box; /* Include padding in element's total width and height */
 }
 
 .class-code-input::placeholder {
-    color: #999;
+    color: var(--text-soft);
 }
 
 .class-code-input:focus {
-    border-color: #007bff; /* Blue border on focus */
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Subtle blue glow on focus */
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .join-button {
     padding: 12px 30px;
     font-size: 1.1rem;
-    background-color: #007bff; /* Blue button, consistent */
-    color: white;
+    background-color: var(--primary-solid);
+    color: var(--on-primary);
     border: none;
-    border-radius: 8px; /* Rounded corners */
+    border-radius: var(--radius);
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
     width: 100%; /* Take full width of its container */
 }
 
 .join-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--primary-solid-hover);
+    box-shadow: var(--shadow-subtle);
 }
 
 .join-button:active {
@@ -76,7 +77,7 @@
 }
 
 .error-message {
-    color: #d32f2f; /* Red for errors */
+    color: var(--danger);
     margin-top: 15px;
     font-size: 0.95rem;
     text-align: center;
@@ -86,10 +87,11 @@
 /* Styles for Active Dashboards section */
 .active-dashboards-section {
     margin-top: 40px; /* Space above this section */
-    background-color: #ffffff;
+    background-color: var(--surface);
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Slightly lighter shadow */
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-subtle);
     max-width: 450px;
     width: 100%;
     box-sizing: border-box;
@@ -98,7 +100,7 @@
 
 .active-dashboards-title {
     font-size: 1.8rem;
-    color: #00796b; /* Greenish-blue, consistent with classId color */
+    color: var(--secondary);
     margin-bottom: 20px;
 }
 
@@ -116,11 +118,11 @@
 }
 
 .dashboard-link-button {
-    background-color: #e0f7fa; /* Light blue background for links */
-    color: #00796b; /* Greenish-blue text */
-    border: 1px solid #b2ebf2; /* Light border */
+    background-color: var(--primary-soft);
+    color: var(--primary);
+    border: 1px solid var(--border);
     padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-size: 1rem;
     cursor: pointer;
     width: 100%; /* Full width button */
@@ -131,8 +133,8 @@
 }
 
 .dashboard-link-button:hover {
-    background-color: #b2ebf2; /* Darker blue on hover */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--secondary-soft);
+    box-shadow: var(--shadow-subtle);
     transform: translateY(-1px);
 }
 
@@ -141,7 +143,7 @@
 }
 
 .no-dashboards-message {
-    color: #666;
+    color: var(--text-muted);
     font-style: italic;
     margin-top: 10px;
 }
@@ -155,11 +157,11 @@
 }
 
 .dropdown-toggle-button {
-    background-color: #4a148c; /* Dark purple, consistent */
-    color: white;
+    background-color: var(--primary-solid);
+    color: var(--on-primary);
     border: none;
     padding: 10px 20px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
@@ -169,8 +171,8 @@
 }
 
 .dropdown-toggle-button:hover {
-    background-color: #6a1b9a; /* Lighter purple on hover */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    background-color: var(--primary-solid-hover);
+    box-shadow: var(--shadow-subtle);
 }
 
 .dropdown-arrow {
@@ -181,9 +183,10 @@
     position: absolute;
     top: 100%; /* Position below the button */
     right: 0; /* Align to the right of the button */
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
     min-width: 220px; /* Minimum width for the dropdown */
     padding: 10px 0;
     margin-top: 10px; /* Space between button and dropdown */
@@ -198,15 +201,15 @@
     width: 100%;
     text-align: left;
     font-size: 1rem;
-    color: #333;
+    color: var(--text);
     cursor: pointer;
     transition: background-color 0.2s ease;
     display: block; /* Make it fill the width */
 }
 
 .dropdown-menu-item:hover {
-    background-color: #f0f8ff; /* Light blue hover effect */
-    color: #007bff; /* Blue text on hover */
+    background-color: var(--surface-muted);
+    color: var(--primary);
 }
 
 

@@ -1,7 +1,7 @@
 .chat-page-container {
     padding: 20px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa); /* Light blue gradient background */
+    background: var(--page-bg);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -11,7 +11,7 @@
 .chat-page-title {
     text-align: center;
     margin-bottom: 20px;
-    color: #4a148c; /* Dark purple for the title */
+    color: var(--text);
     font-size: 2rem;
     padding-top: 20px; /* Add some space from the top of the page */
 }
@@ -23,25 +23,91 @@
     width: 100%; /* Take full width of parent */
     max-width: 1200px; /* Max width like the dashboard */
     margin: 0 auto; /* Center the main content area */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Subtle shadow for the whole content area */
-    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    border-radius: var(--radius);
     overflow: hidden; /* Ensures rounded corners are applied to children */
-    background-color: #fff; /* White background for the main content block */
+    background-color: var(--surface);
 }
 
 .chat-panel {
     flex: 1; /* Takes equal space */
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #eee; /* Separator between panels */
-    border-radius: 8px; /* Apply rounded corners to the panel itself */
+    border-right: 1px solid var(--border);
+    border-radius: var(--radius);
     overflow: hidden; /* Ensure content inside respects rounded corners */
 }
 
+.active-example-box {
+    background-color: var(--primary-soft);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 42%;
+    overflow-y: auto;
+    padding: 14px 16px;
+}
+
+.active-example-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.active-example-eyebrow {
+    color: var(--primary);
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.active-example-header h3 {
+    color: var(--text);
+    font-size: 1.05rem;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.active-example-exit {
+    background-color: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    color: var(--secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 0.88rem;
+    padding: 7px 10px;
+}
+
+.active-example-exit:hover {
+    background-color: var(--secondary-soft);
+}
+
+.active-example-problem {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    line-height: 1.45;
+    padding: 11px 12px;
+}
+
+.active-example-instructions {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
 .practice-panel {
-    background-color: #f7fbff;
-    border: 1px solid #e0e8f0;
-    border-radius: 8px;
+    background-color: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -58,7 +124,7 @@
 }
 
 .practice-header h3 {
-    color: #4a148c;
+    color: var(--secondary);
     font-size: 1rem;
     margin: 0;
 }
@@ -66,10 +132,10 @@
 .practice-header button,
 .practice-submit,
 .practice-result button {
-    background-color: #007bff;
+    background-color: var(--primary-solid);
     border: none;
-    border-radius: 5px;
-    color: #ffffff;
+    border-radius: 6px;
+    color: var(--on-primary);
     cursor: pointer;
     font-size: 0.9rem;
     padding: 8px 12px;
@@ -78,18 +144,18 @@
 .practice-header button:hover,
 .practice-submit:hover:not(:disabled),
 .practice-result button:hover:not(:disabled) {
-    background-color: #0056b3;
+    background-color: var(--primary-solid-hover);
 }
 
 .practice-header button:disabled,
 .practice-submit:disabled,
 .practice-result button:disabled {
-    background-color: #cccccc;
+    background-color: var(--border-strong);
     cursor: not-allowed;
 }
 
 .practice-answer {
-    border: 1px solid #d4dce8;
+    border: 1px solid var(--border);
     border-radius: 6px;
     box-sizing: border-box;
     font: inherit;
@@ -104,10 +170,10 @@
 }
 
 .practice-card {
-    background-color: #ffffff;
-    border: 1px solid #d9e8f8;
-    border-radius: 8px;
-    color: #26364a;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -119,23 +185,23 @@
 
 .practice-card:hover,
 .practice-card.active {
-    background-color: #eef7ff;
-    border-color: #8bbce9;
-    box-shadow: 0 3px 10px rgba(23, 68, 111, 0.12);
+    background-color: var(--primary-soft);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-subtle);
 }
 
 .practice-card.solved {
-    background-color: #edf8ef;
-    border-color: #7bc58a;
-    box-shadow: 0 3px 10px rgba(31, 107, 44, 0.12);
+    background-color: var(--success-soft);
+    border-color: var(--success);
+    box-shadow: var(--shadow-subtle);
 }
 
 .practice-card.solved .practice-card-meta {
-    color: #1f6b2c;
+    color: var(--success);
 }
 
 .practice-card-meta {
-    color: #586273;
+    color: var(--text-muted);
     font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -158,10 +224,10 @@
 }
 
 .practice-problem {
-    background-color: #ffffff;
-    border: 1px solid #e3ebf5;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    color: #26364a;
+    color: var(--text);
     line-height: 1.45;
     margin: 0;
     padding: 10px;
@@ -185,15 +251,15 @@
 }
 
 .practice-result.correct {
-    background-color: #edf8ef;
-    border: 1px solid #b7dfbf;
-    color: #1f6b2c;
+    background-color: var(--success-soft);
+    border: 1px solid var(--success);
+    color: var(--success);
 }
 
 .practice-result.incorrect {
-    background-color: #fff7ed;
-    border: 1px solid #f4c99b;
-    color: #7b4b16;
+    background-color: var(--warning-soft);
+    border: 1px solid var(--warning-border);
+    color: var(--warning);
 }
 
 .practice-result p,
@@ -204,19 +270,19 @@
 }
 
 .practice-solution {
-    background-color: #ffffff;
-    border: 1px solid #d9e8f8;
-    color: #26364a;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
     white-space: pre-wrap;
 }
 
 .practice-error {
-    color: #d32f2f;
+    color: var(--danger);
     font-weight: 500;
 }
 
 .practice-empty {
-    color: #586273;
+    color: var(--text-muted);
 }
 
 /* Chat messages area */
@@ -224,7 +290,7 @@
     flex: 1;
     padding: 15px;
     overflow-y: auto;
-    background-color: #fcfdff; /* Slightly off-white for chat background */
+    background-color: var(--surface-subtle);
 }
 
 .chat-message p {
@@ -237,19 +303,19 @@
 }
 
 .chat-message.system strong {
-    color: #00796b; /* Green for system messages */
+    color: var(--success);
 }
 
 .chat-message.you strong {
-    color: #007bff; /* Blue for your messages */
+    color: var(--primary);
 }
 
 .chat-message.bot strong {
-    color: #8a2be2; /* A shade of purple for bot messages */
+    color: var(--secondary);
 }
 
 .chat-message.judge strong {
-    color: #b45309;
+    color: var(--warning);
 }
 
 .message-citations {
@@ -260,9 +326,9 @@
 }
 
 .citation-button {
-    border: 1px solid #b8c7de;
-    background: #eef5ff;
-    color: #17446f;
+    border: 1px solid var(--border-strong);
+    background: var(--primary-soft);
+    color: var(--primary);
     border-radius: 4px;
     padding: 4px 7px;
     font-size: 0.8rem;
@@ -270,8 +336,8 @@
 }
 
 .citation-button:hover:not(:disabled) {
-    background: #dbeaff;
-    border-color: #7fa8d8;
+    background: var(--secondary-soft);
+    border-color: var(--primary);
 }
 
 .citation-button:disabled {
@@ -282,23 +348,24 @@
 /* Chat input area */
 .chat-input-area {
     display: flex;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border);
     padding: 15px;
-    background-color: #f9f9f9; /* Light grey for input area */
+    background-color: var(--surface-muted);
 }
 
 .chat-input-area input[type="text"] {
     flex: 1;
     padding: 12px;
     font-size: 16px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     border-radius: 5px;
     outline: none; /* Remove default focus outline */
     transition: border-color 0.3s ease;
 }
 
 .chat-input-area input[type="text"]:focus {
-    border-color: #007bff; /* Blue border on focus */
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .chat-input-area button {
@@ -306,15 +373,15 @@
     font-size: 16px;
     margin-left: 10px;
     cursor: pointer;
-    background-color: #007bff; /* Blue send button */
-    color: white;
+    background-color: var(--primary-solid);
+    color: var(--on-primary);
     border: none;
     border-radius: 5px;
     transition: background-color 0.3s ease, transform 0.1s ease;
 }
 
 .chat-input-area button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+    background-color: var(--primary-solid-hover);
 }
 
 .chat-input-area button:active {
@@ -322,25 +389,26 @@
 }
 
 .chat-input-area .clear-example-button {
-    background-color: #ffffff;
-    border: 1px solid #6c757d;
-    color: #495057;
+    background-color: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--secondary);
 }
 
 .chat-input-area .clear-example-button:hover {
-    background-color: #eef1f4;
+    background-color: var(--secondary-soft);
 }
 
 .chat-input-area .check-answer-button {
-    background-color: #28a745;
+    background-color: var(--success-solid);
+    color: var(--on-success);
 }
 
 .chat-input-area .check-answer-button:hover:not(:disabled) {
-    background-color: #218838;
+    background-color: var(--success-solid-hover);
 }
 
 .chat-input-area .check-answer-button:disabled {
-    background-color: #cccccc;
+    background-color: var(--border-strong);
     cursor: not-allowed;
 }
 
@@ -350,12 +418,12 @@
     width: 350px; /* Fixed width for the performance panel */
     flex-shrink: 0; /* Prevent it from shrinking */
     padding: 15px;
-    background-color: #f7f9fc; /* Slightly different background for distinction */
+    background-color: var(--surface-muted);
     display: flex;
     flex-direction: column;
     gap: 14px;
     /* Apply a similar card style to integrate it better */
-    border-radius: 8px; /* Match the chat panel's rounded corners */
+    border-radius: var(--radius);
     overflow-y: auto;
 }
 
@@ -374,16 +442,20 @@
 
     .chat-panel {
         border-right: none; /* Remove vertical separator */
-        border-bottom: 1px solid #eee; /* Add horizontal separator */
+        border-bottom: 1px solid var(--border);
     }
 
     .performance-panel-area {
         width: auto; /* Allow performance panel to take full width */
-        border-top: 1px solid #eee; /* Separator when stacked */
+        border-top: 1px solid var(--border);
         border-radius: 0; /* Remove specific border radius here to blend */
     }
 
     .practice-panel {
+        max-height: none;
+    }
+
+    .active-example-box {
         max-height: none;
     }
 }

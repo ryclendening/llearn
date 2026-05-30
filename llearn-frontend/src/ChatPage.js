@@ -48,10 +48,6 @@ function ChatPage() {
         setPracticeResult(null);
         setPracticeSolution('');
         setPracticeError('');
-        setMessages(prev => [...prev, {
-            sender: 'System',
-            text: `Example problem selected. Use the main chat box to submit your answer.\n\n${example.problem_text}`,
-        }]);
     };
 
     const loadPracticeExamples = async () => {
@@ -211,6 +207,55 @@ function ChatPage() {
             <div className="chat-main-content">
                 {/* Left Panel: Chat Interface */}
                 <div className="chat-panel">
+                    {selectedExample && (
+                        <section className="active-example-box" aria-label="Active example problem">
+                            <div className="active-example-header">
+                                <div>
+                                    <span className="active-example-eyebrow">Example Practice</span>
+                                    <h3>
+                                        {selectedExample.title || 'Selected Problem'}
+                                        {selectedExample.page_start ? ` · p. ${selectedExample.page_start}` : ''}
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="active-example-exit"
+                                    onClick={() => {
+                                        setSelectedExampleId('');
+                                        setPracticeResult(null);
+                                        setPracticeSolution('');
+                                        setPracticeError('');
+                                    }}
+                                >
+                                    Exit
+                                </button>
+                            </div>
+                            <div className="active-example-problem">
+                                <MathText text={selectedExample.problem_text} />
+                            </div>
+                            <p className="active-example-instructions">
+                                Submit one final answer below. The next message will be checked against the worked solution.
+                            </p>
+                            {practiceError && <p className="practice-error">{practiceError}</p>}
+                            {practiceResult && (
+                                <div className={`practice-result ${practiceResult.is_correct ? 'correct' : 'incorrect'}`}>
+                                    <strong>{practiceResult.is_correct ? 'Correct' : 'Not quite yet'}</strong>
+                                    <p><MathText text={practiceResult.feedback} /></p>
+                                    {!practiceResult.is_correct && (
+                                        <button type="button" onClick={revealPracticeSolution} disabled={practiceLoading}>
+                                            Show Solution
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            {practiceSolution && (
+                                <div className="practice-solution">
+                                    <strong>Solution</strong>
+                                    <p><MathText text={practiceSolution} /></p>
+                                </div>
+                            )}
+                        </section>
+                    )}
                     <div className="chat-messages">
                         {messages.map((msg, index) => (
                             <p key={index} className={`chat-message ${msg.sender.toLowerCase()}`}>
@@ -267,7 +312,7 @@ function ChatPage() {
                             <h3>Example Problems</h3>
                             <button type="button" onClick={loadPracticeExamples}>Refresh</button>
                         </div>
-                        {practiceError && <p className="practice-error">{practiceError}</p>}
+                        {!selectedExample && practiceError && <p className="practice-error">{practiceError}</p>}
                         {practiceExamples.length === 0 && !practiceError && (
                             <p className="practice-empty">No example problems are available for this class yet.</p>
                         )}
@@ -295,27 +340,15 @@ function ChatPage() {
                         {selectedExample && (
                             <div className="practice-workspace">
                                 <p className="practice-empty">Active example. Enter a final answer, or exit to return to chat.</p>
-                                {practiceResult && (
-                                    <div className={`practice-result ${practiceResult.is_correct ? 'correct' : 'incorrect'}`}>
-                                        <strong>{practiceResult.is_correct ? 'Correct' : 'Not quite yet'}</strong>
-                                        <p><MathText text={practiceResult.feedback} /></p>
-                                        {!practiceResult.is_correct && (
-                                            <button type="button" onClick={revealPracticeSolution} disabled={practiceLoading}>
-                                                Show Solution
-                                            </button>
-                                        )}
-                                    </div>
-                                )}
-                                {practiceSolution && (
-                                    <div className="practice-solution">
-                                        <strong>Solution</strong>
-                                        <p><MathText text={practiceSolution} /></p>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
-                    <PerformancePanel classId={classId} userId={userId} />
+                    <PerformancePanel
+                        classId={classId}
+                        userId={userId}
+                        variant="student-sidebar"
+                        activeExample={selectedExample}
+                    />
                 </div>
             </div>
         </div>

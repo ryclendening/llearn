@@ -3,7 +3,7 @@
 .dashboard-container {
     padding: 40px 20px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(to bottom, #f0f8ff, #e0f7fa);
+    background: var(--page-bg);
     min-height: 100vh; /* Ensures the background covers the full height */
     box-sizing: border-box; /* Include padding in the element's total width and height */
 }
@@ -11,7 +11,7 @@
 .dashboard-title {
     text-align: center;
     margin-bottom: 30px;
-    color: #4a148c;
+    color: var(--text);
     font-size: 2rem;
 }
 
@@ -28,10 +28,11 @@
 }
 
 .performance-panel-wrapper {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border-radius: 12px;
-    background-color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-subtle);
     padding: 10px;
     /* Ensure the wrapper takes full height of the grid cell if content is short */
     display: flex;
@@ -40,8 +41,8 @@
 }
 
 .performance-panel-wrapper:hover {
-    transform: scale(1.03);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
 }
 
 .performance-panel-wrapper.expanded {
@@ -50,21 +51,21 @@
 
 .student-expand-button {
     align-self: flex-end;
-    background-color: #ffffff;
-    border: 1px solid #00796b;
+    background-color: var(--surface);
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
-    color: #00796b;
+    color: var(--primary);
     cursor: pointer;
     font-size: 0.9rem;
     padding: 7px 10px;
 }
 
 .student-expand-button:hover {
-    background-color: #e9f6f4;
+    background-color: var(--primary-soft);
 }
 
 .student-detail-panel {
-    border-top: 1px solid #e6edf4;
+    border-top: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -72,7 +73,7 @@
 }
 
 .student-detail-panel h3 {
-    color: #4a148c;
+    color: var(--secondary);
     font-size: 1.05rem;
     margin: 0;
 }
@@ -87,27 +88,58 @@
 }
 
 .chat-log-session {
-    background-color: #f7fbff;
-    border: 1px solid #d9e8f8;
-    border-radius: 8px;
+    background-color: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 10px;
 }
 
+.chat-log-session-header {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
 .chat-log-session h4 {
-    color: #586273;
+    color: var(--text-muted);
     font-size: 0.9rem;
-    margin: 0 0 8px 0;
+    margin: 0;
+}
+
+.delete-chat-session-button {
+    background-color: var(--surface);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    color: var(--danger);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    padding: 6px 9px;
+}
+
+.delete-chat-session-button:hover:not(:disabled) {
+    background-color: var(--danger-solid);
+    color: var(--on-danger);
+}
+
+.delete-chat-session-button:disabled {
+    border-color: var(--border-strong);
+    color: var(--text-soft);
+    cursor: not-allowed;
 }
 
 .chat-log-message {
-    background-color: #ffffff;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
     margin-bottom: 8px;
     padding: 8px;
 }
 
 .chat-log-message strong {
-    color: #26364a;
+    color: var(--text);
     display: block;
     font-size: 0.82rem;
     margin-bottom: 4px;
@@ -121,7 +153,7 @@
 }
 
 .chat-log-error {
-    color: #d32f2f;
+    color: var(--danger);
     font-weight: 500;
 }
 
