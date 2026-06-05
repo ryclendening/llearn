@@ -11,18 +11,14 @@ from sqlalchemy.orm import Session
 from db.crud import (
     count_course_materials_with_storage_path,
     course_material_to_payload,
-    create_extracted_examples,
     create_course_material,
     delete_course_material,
     get_course_material,
     get_lesson,
     list_course_materials,
-    update_course_material_extraction_result,
-    update_course_material_ingest_result,
 )
 from db.session import get_db
-from example_ai import extract_example_problems
-from vector_db.pipeline import ingest_pdf
+from services.material_processing import VectorIngestionError, process_materials
 from vector_db.vector_store import get_vector_db
 
 
@@ -108,78 +104,24 @@ async def _upload_material_for_classes(
         storage_path.unlink(missing_ok=True)
         raise HTTPException(status_code=404, detail="Class not found") from exc
 
-    completed_materials = []
     try:
-        for material in materials:
-            chunk_ids = ingest_pdf(
-                str(storage_path),
-                doc_id=material.vector_document_id,
-                class_id=material.lesson_id,
-                material_id=material.id,
-            )
-            completed_materials.append(
-                update_course_material_ingest_result(
-                    db,
-                    material_id=material.id,
-                    status="ready",
-                    chunk_count=len(chunk_ids),
-                )
-            )
-    except Exception as exc:
-        for material in materials:
-            if material.id not in {completed.id for completed in completed_materials}:
-                update_course_material_ingest_result(
-                    db,
-                    material_id=material.id,
-                    status="failed",
-                    error_message=str(exc),
-                )
+        result = process_materials(db, storage_path=str(storage_path), materials=materials)
+    except VectorIngestionError as exc:
         raise HTTPException(
             status_code=502,
             detail={
                 "message": "Material was saved, but vector ingestion failed.",
-                "materials": [course_material_to_payload(material) for material in materials],
+                "materials": [course_material_to_payload(material) for material in exc.materials],
             },
         ) from exc
 
-    extraction_error = None
-    extracted_count = 0
-    completed_material_ids = [material.id for material in completed_materials]
-    extraction_materials = completed_materials
-    try:
-        extracted_examples = extract_example_problems(str(storage_path))
-        extraction_materials = []
-        for material_id in completed_material_ids:
-            created_examples = create_extracted_examples(
-                db,
-                material_id=material_id,
-                examples=extracted_examples,
-            )
-            extracted_count += len(created_examples)
-            extraction_materials.append(update_course_material_extraction_result(
-                db,
-                material_id=material_id,
-                status="ready",
-            ))
-    except Exception as exc:
-        db.rollback()
-        extraction_error = str(exc)
-        extraction_materials = []
-        for material_id in completed_material_ids:
-            extraction_materials.append(update_course_material_extraction_result(
-                db,
-                material_id=material_id,
-                status="failed",
-                error_message=extraction_error,
-            ))
-
     return {
-        "materials": [course_material_to_payload(material) for material in extraction_materials],
+        "materials": [course_material_to_payload(material) for material in result.materials],
         "filename": original_name,
         "class_ids": class_ids,
-        "chunk_count": sum(material.chunk_count for material in extraction_materials),
-        "extracted_example_count": extracted_count,
-        "extraction_error": extraction_error,
+        "chunk_count": sum(material.chunk_count for material in result.materials),
+        "extracted_example_count": result.extracted_example_count,
+        "extraction_error": result.extraction_error,
     }
 
 

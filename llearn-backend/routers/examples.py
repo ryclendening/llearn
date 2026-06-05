@@ -22,7 +22,8 @@ from db.crud import (
     unpublish_example_for_class,
 )
 from db.session import get_db
-from example_ai import extract_example_problems, grade_example_attempt
+from examples.extraction import extract_example_problems
+from examples.grading import grade_example_attempt
 
 
 router = APIRouter(prefix="/api", tags=["examples"])
