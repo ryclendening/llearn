@@ -8,7 +8,7 @@ import operator
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from sentence_transformers import SentenceTransformer
-from vector_db.pipeline import EMBED_MODEL
+from vector_db.ingestion import EMBED_MODEL
 from vector_db.vector_store import SearchResult, get_vector_db
 
 # ── State ──────────────────────────────────────────────────────────────────────
