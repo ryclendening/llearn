@@ -85,7 +85,9 @@ function PerformancePanel({ classId, userId, compact = false, variant = 'default
         const fetchPerformance = async () => {
             try {
                 const query = classId ? `?class_id=${encodeURIComponent(classId)}` : '';
-                const response = await fetch(`/api/performance/${userId}${query}`);
+                const response = await fetch(
+                    isStudentSidebar ? `/api/me/performance${query}` : `/api/performance/${userId}${query}`
+                );
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || 'Could not fetch performance data.');

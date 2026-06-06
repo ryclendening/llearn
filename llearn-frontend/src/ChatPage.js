@@ -6,7 +6,7 @@ import PerformancePanel from './PerformancePanel';
 import './ChatPage.css'; // Import the new CSS file
 
 function ChatPage() {
-    const { classId, userId } = useParams();
+    const { classId } = useParams();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [practiceExamples, setPracticeExamples] = useState([]);
@@ -71,7 +71,8 @@ function ChatPage() {
 
     // Effect for WebSocket connection
     useEffect(() => {
-        const wsUrl = `ws://localhost:8000/ws/chat/${userId}`;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/chat/${encodeURIComponent(classId)}`;
         socket.current = new WebSocket(wsUrl);
 
         socket.current.onopen = () => {
@@ -98,7 +99,7 @@ function ChatPage() {
                 socket.current.close();
             }
         };
-    }, [userId]);
+    }, [classId]);
 
     useEffect(() => {
         loadPracticeExamples();
@@ -121,7 +122,7 @@ function ChatPage() {
             setInput('');
         }
         try {
-            const response = await fetch(`/api/performance/${userId}`, {
+            const response = await fetch(`/api/me/performance?class_id=${encodeURIComponent(classId)}`, {
                 method: 'GET'
             });
 
@@ -152,7 +153,7 @@ function ChatPage() {
             const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/practice-examples/${selectedExampleId}/attempts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, answer: submittedAnswer }),
+                body: JSON.stringify({ answer: submittedAnswer }),
             });
             const data = await response.json();
             if (!response.ok) {
@@ -186,7 +187,7 @@ function ChatPage() {
         setPracticeLoading(true);
         setPracticeError('');
         try {
-            const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/practice-examples/${selectedExampleId}/solution?user_id=${encodeURIComponent(userId)}`);
+            const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/practice-examples/${selectedExampleId}/solution`);
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.detail || 'Could not load solution.');
@@ -202,7 +203,7 @@ function ChatPage() {
     return (
         <div className="chat-page-container">
             <HomeButton />
-            <h2 className="chat-page-title">Student Session: {userId}</h2>
+            <h2 className="chat-page-title">Student Session</h2>
 
             <div className="chat-main-content">
                 {/* Left Panel: Chat Interface */}
@@ -345,7 +346,6 @@ function ChatPage() {
                     </div>
                     <PerformancePanel
                         classId={classId}
-                        userId={userId}
                         variant="student-sidebar"
                         activeExample={selectedExample}
                     />
