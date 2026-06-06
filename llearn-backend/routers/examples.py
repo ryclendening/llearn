@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from auth.dependencies import require_role, require_student_enrollment, require_teacher_owner
 from db.crud import (
     attempt_to_payload,
     create_extracted_examples,
@@ -22,6 +23,7 @@ from db.crud import (
     unpublish_example_for_class,
 )
 from db.session import get_db
+from db.models import User
 from examples.extraction import extract_example_problems
 from examples.grading import grade_example_attempt
 
@@ -34,12 +36,16 @@ class PublishExamplesRequest(BaseModel):
 
 
 class SubmitAttemptRequest(BaseModel):
-    user_id: str
     answer: str
 
 
 @router.get("/materials/{material_id}/examples")
-async def get_material_examples(material_id: int, db: Session = Depends(get_db)):
+async def get_material_examples(
+    material_id: int, teacher: User = Depends(require_role("teacher")), db: Session = Depends(get_db),
+):
+    material = get_course_material(db, material_id)
+    if material and material.lesson.owner_user_id != teacher.id:
+        raise HTTPException(status_code=403, detail="You do not own this class")
     examples = list_material_examples(db, material_id)
     if examples is None:
         raise HTTPException(status_code=404, detail="Material not found")
@@ -47,10 +53,14 @@ async def get_material_examples(material_id: int, db: Session = Depends(get_db))
 
 
 @router.post("/materials/{material_id}/examples/extract")
-async def extract_material_examples(material_id: int, db: Session = Depends(get_db)):
+async def extract_material_examples(
+    material_id: int, teacher: User = Depends(require_role("teacher")), db: Session = Depends(get_db),
+):
     material = get_course_material(db, material_id)
     if material is None:
         raise HTTPException(status_code=404, detail="Material not found")
+    if material.lesson.owner_user_id != teacher.id:
+        raise HTTPException(status_code=403, detail="You do not own this class")
 
     try:
         extracted = extract_example_problems(material.storage_path)
@@ -70,6 +80,7 @@ async def extract_material_examples(material_id: int, db: Session = Depends(get_
 async def publish_class_examples(
     class_id: str,
     request: PublishExamplesRequest,
+    _: User = Depends(require_teacher_owner),
     db: Session = Depends(get_db),
 ):
     example_ids = []
@@ -89,7 +100,7 @@ async def publish_class_examples(
 
 
 @router.get("/classes/{class_id}/examples")
-async def get_class_examples(class_id: str, db: Session = Depends(get_db)):
+async def get_class_examples(class_id: str, _: User = Depends(require_teacher_owner), db: Session = Depends(get_db)):
     examples = list_published_examples(db, class_id)
     if examples is None:
         raise HTTPException(status_code=404, detail="Class not found")
@@ -97,14 +108,18 @@ async def get_class_examples(class_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/classes/{class_id}/examples/{example_id}")
-async def unpublish_class_example(class_id: str, example_id: int, db: Session = Depends(get_db)):
+async def unpublish_class_example(
+    class_id: str, example_id: int, _: User = Depends(require_teacher_owner), db: Session = Depends(get_db),
+):
     if not unpublish_example_for_class(db, lesson_id=class_id, example_id=example_id):
         raise HTTPException(status_code=404, detail="Published example not found")
     return {"message": "Example unpublished"}
 
 
 @router.get("/classes/{class_id}/practice-examples")
-async def get_practice_examples(class_id: str, db: Session = Depends(get_db)):
+async def get_practice_examples(
+    class_id: str, _: User = Depends(require_student_enrollment), db: Session = Depends(get_db),
+):
     examples = list_published_examples(db, class_id)
     if examples is None:
         raise HTTPException(status_code=404, detail="Class not found")
@@ -116,13 +131,12 @@ async def submit_practice_attempt(
     class_id: str,
     example_id: int,
     request: SubmitAttemptRequest,
+    student: User = Depends(require_student_enrollment),
     db: Session = Depends(get_db),
 ):
     answer = request.answer.strip()
     if not answer:
         raise HTTPException(status_code=400, detail="Answer cannot be empty.")
-    if not get_student(db, request.user_id):
-        raise HTTPException(status_code=404, detail="Student not found")
     if not is_example_published_for_class(db, lesson_id=class_id, example_id=example_id):
         raise HTTPException(status_code=404, detail="Example not found for this class")
 
@@ -141,26 +155,26 @@ async def submit_practice_attempt(
 
     attempt = save_example_attempt(
         db,
-        student_id=request.user_id,
+        student_id=student.id,
         lesson_id=class_id,
         example_id=example_id,
         submitted_answer=answer,
         judgment=judgment,
     )
-    return {"attempt": attempt_to_payload(attempt), "performance": get_example_performance(db, student_id=request.user_id, lesson_id=class_id)}
+    return {"attempt": attempt_to_payload(attempt), "performance": get_example_performance(db, student_id=student.id, lesson_id=class_id)}
 
 
 @router.get("/classes/{class_id}/practice-examples/{example_id}/solution")
 async def get_practice_solution(
     class_id: str,
     example_id: int,
-    user_id: str = Query(...),
+    student: User = Depends(require_student_enrollment),
     db: Session = Depends(get_db),
 ):
     if not is_example_published_for_class(db, lesson_id=class_id, example_id=example_id):
         raise HTTPException(status_code=404, detail="Example not found for this class")
 
-    attempts = list_example_attempts(db, student_id=user_id, lesson_id=class_id, example_id=example_id)
+    attempts = list_example_attempts(db, student_id=student.id, lesson_id=class_id, example_id=example_id)
     if not any(not attempt.is_correct for attempt in attempts):
         raise HTTPException(status_code=403, detail="Solution is available after an incorrect attempt.")
 

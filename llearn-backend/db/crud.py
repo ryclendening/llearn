@@ -31,14 +31,7 @@ DEFAULT_LESSON = {
 
 
 def seed_default_lesson(db: Session) -> None:
-    if get_lesson(db, DEFAULT_LESSON["lesson_id"]):
-        return
-    upsert_lesson(
-        db,
-        lesson_id=DEFAULT_LESSON["lesson_id"],
-        title=DEFAULT_LESSON["title"],
-        objectives=DEFAULT_LESSON["objectives"],
-    )
+    return
 
 
 def get_lesson(db: Session, lesson_id: str) -> Lesson | None:
@@ -49,14 +42,13 @@ def get_lesson(db: Session, lesson_id: str) -> Lesson | None:
     )
 
 
-def list_lessons(db: Session) -> list[Lesson]:
-    return list(
-        db.scalars(
-            select(Lesson)
-            .options(selectinload(Lesson.objectives))
-            .order_by(Lesson.created_at, Lesson.id)
-        )
-    )
+def list_lessons(db: Session, *, owner_user_id: str | None = None, student_id: str | None = None) -> list[Lesson]:
+    query = select(Lesson).options(selectinload(Lesson.objectives))
+    if owner_user_id:
+        query = query.where(Lesson.owner_user_id == owner_user_id)
+    if student_id:
+        query = query.join(Enrollment).where(Enrollment.student_id == student_id)
+    return list(db.scalars(query.order_by(Lesson.created_at, Lesson.id)))
 
 
 def delete_lesson(db: Session, lesson_id: str) -> bool:
@@ -76,13 +68,15 @@ def lesson_to_payload(lesson: Lesson) -> dict:
     }
 
 
-def upsert_lesson(db: Session, *, lesson_id: str, title: str, objectives: list[str]) -> Lesson:
+def upsert_lesson(db: Session, *, lesson_id: str, title: str, objectives: list[str], owner_user_id: str) -> Lesson:
     lesson = get_lesson(db, lesson_id)
     if lesson is None:
-        lesson = Lesson(id=lesson_id, title=title)
+        lesson = Lesson(id=lesson_id, title=title, owner_user_id=owner_user_id)
         db.add(lesson)
         db.flush()
     else:
+        if lesson.owner_user_id != owner_user_id:
+            raise ValueError("lesson_not_owned")
         lesson.title = title
         lesson.objectives.clear()
         db.flush()
@@ -101,9 +95,7 @@ def create_student_enrollment(db: Session, *, student_id: str, lesson_id: str) -
 
     student = db.get(Student, student_id)
     if student is None:
-        student = Student(id=student_id)
-        db.add(student)
-        db.flush()
+        raise ValueError("student_not_found")
 
     enrollment = db.get(Enrollment, {"student_id": student_id, "lesson_id": lesson_id})
     if enrollment is None:

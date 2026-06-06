@@ -6,15 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 import random_lesson_gen
+from auth.dependencies import require_role
 from db.crud import (
     count_course_materials_with_storage_path,
     delete_lesson,
+    get_lesson,
     lesson_to_payload,
     list_course_materials,
     list_lessons,
     upsert_lesson,
 )
 from db.session import get_db
+from db.models import User
 from vector_db.vector_store import get_vector_db
 
 
@@ -22,12 +25,16 @@ router = APIRouter(prefix="/api", tags=["learning-objectives"])
 
 
 @router.get("/generate-objectives")
-async def generate_objectives(age: int, genre: str):
+async def generate_objectives(age: int, genre: str, _: User = Depends(require_role("teacher"))):
     return random_lesson_gen.run_graph(age, genre)
 
 
 @router.post("/learning-objectives")
-async def add_learning_objectives(request: Request, db: Session = Depends(get_db)):
+async def add_learning_objectives(
+    request: Request,
+    teacher: User = Depends(require_role("teacher")),
+    db: Session = Depends(get_db),
+):
     data = await request.json()
     for field in ["lesson_id", "title", "objectives"]:
         if field not in data:
@@ -35,22 +42,31 @@ async def add_learning_objectives(request: Request, db: Session = Depends(get_db
     if not isinstance(data["objectives"], list) or not all(isinstance(o, str) for o in data["objectives"]):
         raise HTTPException(status_code=400, detail="'objectives' must be a list of strings")
 
-    upsert_lesson(
-        db,
-        lesson_id=data["lesson_id"],
-        title=data["title"],
-        objectives=data["objectives"],
-    )
+    try:
+        upsert_lesson(
+            db, lesson_id=data["lesson_id"], title=data["title"],
+            objectives=data["objectives"], owner_user_id=teacher.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail="You do not own this class") from exc
     return {"message": f"Learning objectives for '{data['lesson_id']}' received", "count": len(data["objectives"])}
 
 
 @router.get("/learning-objectives")
-async def get_learning_objectives(db: Session = Depends(get_db)):
-    return {lesson.id: lesson_to_payload(lesson) for lesson in list_lessons(db)}
+async def get_learning_objectives(user: User = Depends(require_role("teacher", "student")), db: Session = Depends(get_db)):
+    lessons = list_lessons(db, owner_user_id=user.id) if user.role == "teacher" else list_lessons(db, student_id=user.id)
+    return {lesson.id: lesson_to_payload(lesson) for lesson in lessons}
 
 
 @router.delete("/learning-objectives/{lesson_id}")
-async def remove_learning_objectives(lesson_id: str, db: Session = Depends(get_db)):
+async def remove_learning_objectives(
+    lesson_id: str,
+    teacher: User = Depends(require_role("teacher")),
+    db: Session = Depends(get_db),
+):
+    lesson = get_lesson(db, lesson_id)
+    if lesson and lesson.owner_user_id != teacher.id:
+        raise HTTPException(status_code=403, detail="You do not own this class")
     materials = list_course_materials(db, lesson_id)
     if materials is None:
         raise HTTPException(status_code=404, detail=f"Class session '{lesson_id}' not found")

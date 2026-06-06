@@ -1,143 +1,101 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './HomePage.css'; // Import the CSS file
+import { useAuth } from './AuthContext';
+import './HomePage.css';
 
 function HomePage() {
+    const { user, refresh, logout } = useAuth();
     const [classCode, setClassCode] = useState('');
+    const [classes, setClasses] = useState([]);
     const [error, setError] = useState('');
-    const [activeClasses, setActiveClasses] = useState([]); // New state for active classes
-    const [showDropdown, setShowDropdown] = useState(false); // State to manage dropdown visibility
     const navigate = useNavigate();
 
-    // Fetch active classes on component mount
-    useEffect(() => {
-        const fetchActiveClasses = async () => {
-            try {
-                // Assuming an API endpoint that returns a list of active class IDs
-                const response = await fetch('/api/learning-objectives'); // Changed endpoint as per user's provided code
-                if (!response.ok) {
-                    throw new Error('Failed to fetch active classes.');
-                }
-                const data = await response.json();
-                // Assuming data.active_lessons is an array of class IDs
-                setActiveClasses(Object.keys(data) || []); // Changed data key as per user's provided code
-                // You can also console.log here for debugging in the console
-                console.log('Fetched active classes:', activeClasses);
-            } catch (err) {
-                console.error("Error fetching active classes:", err);
-                // Optionally set an error for the active classes section
-            }
-        };
-
-        fetchActiveClasses();
-        // You might want to refresh this periodically or on certain events
-        // const intervalId = setInterval(fetchActiveClasses, 30000); // e.g., every 30 seconds
-        // return () => clearInterval(intervalId);
-    }, []); // Empty dependency array means this runs once on mount
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        if (!classCode.trim()) {
-            setError('Class Code cannot be empty.');
-            return;
-        }
-
-        const userId = `user_${Date.now()}`;
-
-        try {
-            const response = await fetch('/api/create-student', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, lesson_id: classCode }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to join the class.');
-            }
-
-            window.open(`/chat/${classCode}/${userId}`, '_blank');
-
-        } catch (err) {
-            console.error("Error joining class:", err);
-            setError(err.message);
-        }
+    const loadClasses = async () => {
+        if (user.role === 'admin') return;
+        const response = await fetch('/api/learning-objectives');
+        if (response.ok) setClasses(Object.entries(await response.json()));
     };
 
-    // Function to handle navigation from dropdown and close it
-    const handleNavigate = (path) => {
-        navigate(path);
-        setShowDropdown(false); // Close dropdown after navigation
+    useEffect(() => { loadClasses(); }, [user.role]);
+
+    const joinClass = async (event) => {
+        event.preventDefault();
+        const response = await fetch('/api/classes/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ class_id: classCode }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            setError(data.detail || 'Failed to join class.');
+            return;
+        }
+        await loadClasses();
+        navigate(`/chat/${encodeURIComponent(classCode)}`);
+    };
+
+    const requestTeacherAccess = async () => {
+        const response = await fetch('/api/teacher-access-requests', { method: 'POST' });
+        if (response.ok) await refresh();
+    };
+
+    const switchDevelopmentRole = async (role) => {
+        const response = await fetch('/api/auth/dev-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email, display_name: user.display_name, role }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            setError(data.detail || 'Could not switch development role.');
+            return;
+        }
+        await refresh();
     };
 
     return (
-        <div className="homepage-container">
-            {/* Dropdown for navigation options */}
-            <div className="top-navigation-container">
+        <main className="homepage-container">
+            <button type="button" onClick={logout}>Log out</button>
+            <h1 className="homepage-title">Welcome, {user.display_name}</h1>
+            <p>{user.role}</p>
+            {import.meta.env.DEV && (
+                <section>
+                    <strong>Development role:</strong>
+                    <button type="button" onClick={() => switchDevelopmentRole('student')}>Act as student</button>
+                    <button type="button" onClick={() => switchDevelopmentRole('teacher')}>Act as teacher</button>
+                    <button type="button" onClick={() => switchDevelopmentRole('admin')}>Act as admin</button>
+                </section>
+            )}
+
+            {user.role === 'admin' && <button type="button" onClick={() => navigate('/admin')}>Manage Teacher Requests</button>}
+
+            {user.role === 'teacher' && <>
+                <button type="button" onClick={() => navigate('/create-objectives')}>Manage Classes And Materials</button>
+                <h2>Your Classes</h2>
+            </>}
+
+            {user.role === 'student' && <>
+                <form onSubmit={joinClass} className="join-form">
+                    <input value={classCode} onChange={(event) => setClassCode(event.target.value)} placeholder="Enter Class Code" required />
+                    <button type="submit">Join Class</button>
+                </form>
+                {error && <p className="error-message">{error}</p>}
+                <button type="button" onClick={requestTeacherAccess} disabled={user.teacher_request_status === 'pending'}>
+                    {user.teacher_request_status === 'pending' ? 'Teacher Access Pending' : 'Request Teacher Access'}
+                </button>
+                <h2>Your Classes</h2>
+            </>}
+
+            {classes.map(([id, details]) => (
                 <button
-                    className="dropdown-toggle-button"
-                    onClick={() => setShowDropdown(!showDropdown)}
+                    key={id}
+                    type="button"
+                    onClick={() => navigate(user.role === 'teacher' ? `/dashboard/${id}` : `/chat/${id}`)}
                 >
-                    Options <span className="dropdown-arrow">{showDropdown ? '▲' : '▼'}</span>
+                    {details.title} ({id})
                 </button>
-                {showDropdown && (
-                    <div className="dropdown-menu">
-                        <button
-                            onClick={() => handleNavigate('/create-objectives')}
-                            className="dropdown-menu-item"
-                        >
-                            Create New Learning Objectives
-                        </button>
-                        {/* Add other options here if needed */}
-                    </div>
-                )}
-            </div>
-
-            <h1 className="homepage-title">Join a Class</h1>
-            <form onSubmit={handleSubmit} className="join-form">
-                <input
-                    type="text"
-                    value={classCode}
-                    onChange={(e) => setClassCode(e.target.value)}
-                    placeholder="Enter Class Code"
-                    className="class-code-input"
-                />
-                <button type="submit" className="join-button">
-                    Join
-                </button>
-            </form>
-            {error && <p className="error-message">{error}</p>}
-
-            {/* Section for active dashboards */}
-            <div className="active-dashboards-section">
-                <h2 className="active-dashboards-title">Active Class Dashboards</h2>
-
-                {/* --- DEBUGGING DISPLAY START --- */}
-                {/* Temporarily display the raw activeClasses array for debugging */}
-                {/* You can uncomment this block to see the array's content */}
-                {/* <div style={{ marginTop: '10px', padding: '10px', border: '1px dashed #ccc', backgroundColor: '#f9f9f9', fontSize: '0.8em', wordBreak: 'break-all' }}>
-                    <strong>DEBUG: activeClasses:</strong> {JSON.stringify(activeClasses)}
-                </div> */}
-                {/* --- DEBUGGING DISPLAY END --- */}
-
-                {activeClasses.length > 0 ? (
-                    <ul className="active-dashboards-list">
-                        {activeClasses.map((classIdItem) => (
-                            <li key={classIdItem}>
-                                <button
-                                    onClick={() => navigate(`/dashboard/${classIdItem}`)}
-                                    className="dashboard-link-button"
-                                >
-                                    Dashboard for: {classIdItem}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="no-dashboards-message">No active dashboards found.</p>
-                )}
-            </div>
-        </div>
+            ))}
+        </main>
     );
 }
 

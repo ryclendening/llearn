@@ -5,6 +5,8 @@ import traceback
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from auth.config import AUTH_COOKIE_NAME
+from auth.service import get_user_for_session
 from db.crud import (
     add_message,
     create_chat_session,
@@ -29,17 +31,23 @@ def _chat_payload(text: str, citations: list[dict] | None = None, message_type: 
     })
 
 
-@router.websocket("/ws/chat/{user_id}")
-async def websocket_chat(websocket: WebSocket, user_id: str):
+@router.websocket("/ws/chat/{class_id}")
+async def websocket_chat(websocket: WebSocket, class_id: str):
     await websocket.accept()
 
     db = SessionLocal()
     try:
-        lesson_id = get_student_lesson_id(db, user_id)
-        if not lesson_id:
-            await websocket.send_text(_chat_payload("Student not found", message_type="system"))
+        user = get_user_for_session(db, websocket.cookies.get(AUTH_COOKIE_NAME))
+        if user is None or user.role != "student" or user.student is None:
+            await websocket.send_text(_chat_payload("Authentication required", message_type="system"))
             await websocket.close()
             return
+        user_id = user.id
+        if not any(item.lesson_id == class_id for item in user.student.enrollments):
+            await websocket.send_text(_chat_payload("Student is not enrolled in this class", message_type="system"))
+            await websocket.close()
+            return
+        lesson_id = class_id
 
         lesson = get_lesson(db, lesson_id)
         if not lesson:
@@ -56,7 +64,7 @@ async def websocket_chat(websocket: WebSocket, user_id: str):
             for item in (list_published_examples(db, lesson_id) or [])
         ]
         chat_session = create_chat_session(db, student_id=user_id, lesson_id=lesson_id)
-        config = {"configurable": {"thread_id": user_id}}
+        config = {"configurable": {"thread_id": f"{user_id}:{lesson_id}"}}
         latest_assessment = get_latest_assessment(db, user_id, lesson_id=lesson_id)
         persisted_scores = latest_assessment.scores if latest_assessment else None
         persisted_mastered = bool(latest_assessment.mastered) if latest_assessment else False
