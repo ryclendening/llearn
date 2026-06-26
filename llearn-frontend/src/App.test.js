@@ -96,21 +96,21 @@ test('student session uses workspace tabs', async () => {
   expect(await screen.findByRole('button', { name: /^chat$/i })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByRole('button', { name: /practice problems/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /class material/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /progress/i })).toBeInTheDocument();
+  expect(await screen.findByText(/learning progress/i)).toBeInTheDocument();
+  expect(screen.getByText(/compare fractions/i)).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /practice problems/i }));
   expect(await screen.findByRole('heading', { name: /practice problems/i })).toBeInTheDocument();
+  expect(screen.getByText(/compare fractions/i)).toBeInTheDocument();
   fireEvent.click(await screen.findByRole('button', { name: /what is 1\/2 \+ 1\/4/i }));
   expect(screen.getByRole('button', { name: /^chat$/i })).toHaveAttribute('aria-pressed', 'true');
   expect(await screen.findByLabelText(/active example problem/i)).toBeInTheDocument();
+  expect(screen.getByText(/active example selected/i)).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /class material/i }));
   expect(await screen.findByRole('heading', { name: /class material/i })).toBeInTheDocument();
   expect(screen.getByText(/material list access is coming next/i)).toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole('button', { name: /progress/i }));
-  expect(await screen.findByRole('heading', { name: /^progress$/i })).toBeInTheDocument();
-  expect(screen.getByText(/learning progress/i)).toBeInTheDocument();
+  expect(screen.getByText(/compare fractions/i)).toBeInTheDocument();
 });
 
 test('authenticated administrators visiting login are redirected to admin management', async () => {

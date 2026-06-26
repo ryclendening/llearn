@@ -51,32 +51,22 @@ function PerformancePanel({ classId, userId, compact = false, variant = 'default
         ? Math.round((examplePerformance.attempted_count / examplePerformance.assigned_count) * 100)
         : 0;
 
+    const panelClassName = `performance-panel ${isStudentSidebar ? 'student-progress-panel' : ''}`;
+
     const renderStatusBar = (label, pct, helperText, fill = 'var(--success)') => (
-        <div style={{ marginBottom: '12px' }}>
-            <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700 }}>{label}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: '12px', whiteSpace: 'nowrap' }}>{pct}%</span>
+        <div className="performance-status-bar">
+            <div className="performance-status-label">
+                <span>{label}</span>
+                <span>{pct}%</span>
             </div>
-            <div style={{
-                height: '10px',
-                width: '100%',
-                backgroundColor: 'var(--secondary-soft)',
-                borderRadius: '999px',
-                marginTop: '5px',
-                overflow: 'hidden',
-            }}>
-                <div style={{
-                    height: '100%',
-                    width: `${pct}%`,
-                    backgroundColor: fill,
-                    borderRadius: '999px',
-                    transition: 'width 0.5s ease-in-out',
-                }} />
+            <div className="performance-progress-track">
+                <div
+                    className="performance-progress-fill"
+                    style={{ width: `${pct}%`, backgroundColor: fill }}
+                />
             </div>
             {helperText && (
-                <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
-                    {helperText}
-                </div>
+                <div className="performance-helper-text">{helperText}</div>
             )}
         </div>
     );
@@ -129,23 +119,9 @@ function PerformancePanel({ classId, userId, compact = false, variant = 'default
         };
         fetchObjectives();
     }, [classId]); // and this is saying do it everytime the classId changes
-
-
-
-
 return (
-    <div style={{
-        border: '1px solid var(--border)',
-        padding: '12px 16px',
-        borderRadius: 'var(--radius)',
-        backgroundColor: 'var(--surface)',
-        boxShadow: 'var(--shadow-subtle)',
-        color: 'var(--text)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-    }}>
-            <h4 style={{ marginTop: 0, borderBottom: '2px solid var(--border)', paddingBottom: '10px', color: 'var(--secondary)' }}>
+    <div className={panelClassName}>
+            <h4>
                 {isStudentSidebar ? 'Learning Progress' : userId}
             </h4>
             
@@ -177,38 +153,32 @@ return (
             )}
 
             {isStudentSidebar && (
-                <div>
-                    <h5>Learning Objectives:</h5>
+                <div className="student-objectives-summary">
+                    <h5>Learning Objectives</h5>
                     {objectiveScores.length > 0 ? (
                         <>
-                            <p style={{ margin: '6px 0', fontSize: '14px' }}>
+                            <p className="student-objectives-count">
                                 {masteredObjectiveCount} / {objectiveScores.length} mastered
                             </p>
-                        <ul style={{paddingLeft: '0', listStyleType: 'none', margin: '8px 0 0 0'}}>
+                        <ul className="student-objective-list">
                             {objectiveScores.map(({ objectiveText, pct }) => (
-                                <li key={objectiveText} style={{ marginBottom: '10px', fontSize: '13px' }}>
-                                    <span style={{ display: 'block', overflowWrap: 'anywhere' }}>{objectiveText}</span>
-                                    <div style={{
-                                        height: '10px',
-                                        width: '100%',
-                                        backgroundColor: 'var(--secondary-soft)',
-                                        borderRadius: '999px',
-                                        marginTop: '4px'
-                                    }}>
-                                        <div style={{
-                                            height: '100%',
-                                            width: `${pct}%`,
-                                            backgroundColor: 'var(--success)',
-                                            borderRadius: '999px',
-                                            transition: 'width 0.5s ease-in-out'
-                                        }} />
+                                <li key={objectiveText}>
+                                    <div className="student-objective-row">
+                                        <span>{objectiveText}</span>
+                                        <strong>{pct}%</strong>
+                                    </div>
+                                    <div className="performance-progress-track">
+                                        <div
+                                            className="performance-progress-fill"
+                                            style={{ width: `${pct}%` }}
+                                        />
                                     </div>
                                 </li>
                             ))}
                         </ul>
                         </>
                     ) : (
-                        <p style={{ margin: '6px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                        <p className="student-progress-muted">
                             No learning objectives found for this class.
                         </p>
                     )}
@@ -254,17 +224,17 @@ return (
                 </div>
             )}
             {performance && examplePerformance && !compact && (
-                <div style={{ marginTop: '14px', borderTop: '2px solid var(--border)', paddingTop: '10px' }}>
+                <div className="student-practice-summary">
                     <h5>{isStudentSidebar ? 'Practice Summary:' : 'Example Problems:'}</h5>
-                    <p style={{ margin: '6px 0', fontSize: '14px' }}>
+                    <p>
                         {examplePerformance.correct_count} / {examplePerformance.assigned_count} correct
                     </p>
-                    <p style={{ margin: '6px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    <p className="student-progress-muted">
                         {examplePerformance.attempted_count} attempted
                     </p>
                     {isStudentSidebar && (
-                        <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: activeExample ? 'var(--primary)' : 'var(--text-muted)' }}>
-                            {activeExample ? 'Active example selected' : 'No active example'}
+                        <p className={`student-active-example ${activeExample ? 'active' : ''}`}>
+                            {activeExample ? 'Active example selected' : 'No active example selected'}
                         </p>
                     )}
                     {!isStudentSidebar && Array.isArray(examplePerformance.examples) && examplePerformance.examples.length > 0 && (
