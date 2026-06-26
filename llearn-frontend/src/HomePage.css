@@ -1,49 +1,157 @@
-/* HomePage.css */
-
 .homepage-container {
+    align-items: center;
+    background: var(--page-bg);
+    box-sizing: border-box;
+    display: flex;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 28px 20px;
+}
+
+.homepage-shell {
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Center vertically */
-    align-items: center; /* Center horizontally */
-    min-height: 100vh; /* Take full viewport height */
-    background: var(--page-bg);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-    box-sizing: border-box;
-    position: relative; /* Needed for positioning the dropdown */
+    gap: 18px;
+    max-width: 920px;
+    width: 100%;
+}
+
+.homepage-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
 }
 
 .homepage-title {
-    font-size: 2.5rem; /* Larger title */
     color: var(--text);
-    margin-bottom: 30px;
+    font-size: 2.2rem;
     font-weight: 700;
+    line-height: 1.15;
+    margin: 8px 0 0;
 }
 
-.join-form {
-    display: flex;
-    flex-direction: column; /* Stack input and button on smaller screens */
-    gap: 15px; /* Space between form elements */
+.role-badge {
+    background-color: var(--primary-soft);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--primary);
+    display: inline-flex;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    padding: 6px 10px;
+    text-transform: uppercase;
+}
+
+.homepage-card,
+.dev-role-card {
     background-color: var(--surface);
-    padding: 40px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    max-width: 450px; /* Limit form width */
-    width: 100%; /* Make it responsive */
     box-sizing: border-box;
-    align-items: center; /* Center form elements */
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 28px;
+    width: 100%;
+}
+
+.homepage-card h2 {
+    color: var(--secondary);
+    font-size: 1.35rem;
+    margin: 0 0 6px;
+}
+
+.homepage-card p,
+.classes-header p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.primary-action-button,
+.secondary-action-button,
+.dev-role-actions button {
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 11px 16px;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.primary-action-button {
+    align-self: flex-start;
+    background-color: var(--primary-solid);
+    border: none;
+    color: var(--on-primary);
+}
+
+.primary-action-button:hover:not(:disabled) {
+    background-color: var(--primary-solid-hover);
+    box-shadow: var(--shadow-subtle);
+}
+
+.secondary-action-button,
+.dev-role-actions button {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--secondary);
+}
+
+.secondary-action-button:hover:not(:disabled),
+.dev-role-actions button:hover {
+    background-color: var(--surface-muted);
+    box-shadow: var(--shadow-subtle);
+}
+
+.primary-action-button:active:not(:disabled),
+.secondary-action-button:active:not(:disabled),
+.dev-role-actions button:active {
+    transform: translateY(1px);
+}
+
+.secondary-action-button:disabled {
+    color: var(--text-soft);
+    cursor: not-allowed;
+}
+
+.dev-role-card {
+    box-shadow: var(--shadow-subtle);
+    gap: 12px;
+    padding: 18px;
+}
+
+.dev-role-card strong {
+    color: var(--text);
+}
+
+.dev-role-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.join-form {
+    align-items: stretch;
+    display: flex;
+    gap: 12px;
+    max-width: 620px;
+    width: 100%;
 }
 
 .class-code-input {
-    padding: 12px 15px;
-    width: 100%; /* Take full width of its container */
-    font-size: 1.1rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    outline: none; /* Remove default focus outline */
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    box-sizing: border-box; /* Include padding in element's total width and height */
+    box-sizing: border-box;
+    flex: 1;
+    font-size: 1rem;
+    min-width: 0;
+    outline: none;
+    padding: 12px 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .class-code-input::placeholder {
@@ -55,177 +163,110 @@
     box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-.join-button {
-    padding: 12px 30px;
-    font-size: 1.1rem;
-    background-color: var(--primary-solid);
-    color: var(--on-primary);
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-    width: 100%; /* Take full width of its container */
-}
-
-.join-button:hover {
-    background-color: var(--primary-solid-hover);
-    box-shadow: var(--shadow-subtle);
-}
-
-.join-button:active {
-    transform: translateY(1px); /* Slight press effect */
-}
-
 .error-message {
     color: var(--danger);
-    margin-top: 15px;
     font-size: 0.95rem;
-    text-align: center;
-    font-weight: 500;
+    font-weight: 600;
+    margin: 0;
 }
 
-/* Styles for Active Dashboards section */
-.active-dashboards-section {
-    margin-top: 40px; /* Space above this section */
-    background-color: var(--surface);
-    padding: 30px;
+.classes-card {
+    gap: 16px;
+}
+
+.classes-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.class-card-list {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.class-card-button {
+    align-items: flex-start;
+    background-color: var(--surface-subtle);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow-subtle);
-    max-width: 450px;
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-.active-dashboards-title {
-    font-size: 1.8rem;
-    color: var(--secondary);
-    margin-bottom: 20px;
-}
-
-.active-dashboards-list {
-    list-style: none; /* Remove bullet points */
-    padding: 0;
-    margin: 0;
+    color: var(--text);
+    cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Space between list items */
+    gap: 16px;
+    justify-content: space-between;
+    min-height: 128px;
+    padding: 16px;
+    text-align: left;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
 }
 
-.active-dashboards-list li {
-    margin: 0;
-}
-
-.dashboard-link-button {
-    background-color: var(--primary-soft);
-    color: var(--primary);
-    border: 1px solid var(--border);
-    padding: 12px 20px;
-    border-radius: var(--radius);
-    font-size: 1rem;
-    cursor: pointer;
-    width: 100%; /* Full width button */
-    text-align: center;
-    text-decoration: none; /* Remove underline for links */
-    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-    display: block; /* Make it a block element to apply full width */
-}
-
-.dashboard-link-button:hover {
-    background-color: var(--secondary-soft);
+.class-card-button:hover {
+    background-color: var(--surface-muted);
     box-shadow: var(--shadow-subtle);
     transform: translateY(-1px);
 }
 
-.dashboard-link-button:active {
-    transform: translateY(0);
+.class-card-button strong,
+.class-card-button small {
+    display: block;
+    overflow-wrap: anywhere;
 }
 
-.no-dashboards-message {
+.class-card-button strong {
+    color: var(--text);
+    font-size: 1.05rem;
+    margin-bottom: 5px;
+}
+
+.class-card-button small {
     color: var(--text-muted);
-    font-style: italic;
-    margin-top: 10px;
+    font-size: 0.9rem;
 }
 
-/* New styles for the top dropdown menu */
-.top-navigation-container {
-    position: absolute; /* Position relative to homepage-container */
-    top: 20px; /* Adjust as needed */
-    right: 20px; /* Adjust as needed */
-    z-index: 1000; /* Ensure it's above other content */
+.class-card-button em {
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-style: normal;
+    font-weight: 800;
 }
 
-.dropdown-toggle-button {
-    background-color: var(--primary-solid);
-    color: var(--on-primary);
-    border: none;
-    padding: 10px 20px;
-    border-radius: var(--radius);
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.dropdown-toggle-button:hover {
-    background-color: var(--primary-solid-hover);
-    box-shadow: var(--shadow-subtle);
-}
-
-.dropdown-arrow {
-    font-size: 0.8em;
-}
-
-.dropdown-menu {
-    position: absolute;
-    top: 100%; /* Position below the button */
-    right: 0; /* Align to the right of the button */
-    background-color: var(--surface);
+.empty-classes-message {
+    background-color: var(--surface-muted);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    min-width: 220px; /* Minimum width for the dropdown */
-    padding: 10px 0;
-    margin-top: 10px; /* Space between button and dropdown */
-    list-style: none;
-    z-index: 1000; /* Ensure it's above other content */
+    color: var(--text-muted);
+    margin: 0;
+    padding: 14px 16px;
 }
 
-.dropdown-menu-item {
-    background: none;
-    border: none;
-    padding: 12px 20px;
-    width: 100%;
-    text-align: left;
-    font-size: 1rem;
-    color: var(--text);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    display: block; /* Make it fill the width */
-}
+@media (max-width: 700px) {
+    .homepage-container {
+        justify-content: flex-start;
+        padding: 22px 16px;
+    }
 
-.dropdown-menu-item:hover {
-    background-color: var(--surface-muted);
-    color: var(--primary);
-}
-
-
-/* Responsive adjustments */
-@media (min-width: 600px) {
+    .homepage-header,
+    .classes-header,
     .join-form {
-        flex-direction: row; /* Horizontal layout on wider screens */
-        justify-content: center;
-        gap: 10px;
+        align-items: stretch;
+        flex-direction: column;
     }
 
-    .class-code-input {
-        width: 300px; /* Specific width on wider screens */
+    .homepage-title {
+        font-size: 1.8rem;
     }
 
-    .join-button {
-        width: auto; /* Auto width on wider screens */
+    .homepage-card {
+        padding: 22px;
+    }
+
+    .primary-action-button,
+    .secondary-action-button {
+        align-self: stretch;
+        text-align: center;
     }
 }
