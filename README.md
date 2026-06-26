@@ -67,7 +67,7 @@ llearn-frontend/
     └── ...
 ```
 
-The frontend includes screens and components for login, chat tutoring, teacher/admin workflows, math rendering, and performance views. Teacher class management uses a single class setup screen with a left-side workflow toggle for AI generation, goals/objectives, existing classes, and class materials/examples.
+The frontend includes screens and components for login, chat tutoring, teacher/admin workflows, math rendering, and performance views. Teacher class management uses a single class setup screen with a left-side workflow toggle for AI generation, goals/objectives, existing classes, and class materials/examples. Student sessions use a workspace layout with tabs for chat, practice problems, class material, and progress.
 
 ## Local Services
 

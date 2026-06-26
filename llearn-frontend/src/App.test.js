@@ -7,8 +7,25 @@ const mockApi = (user) => {
     ok: user !== null || url !== '/api/auth/me',
     json: async () => {
       if (url === '/api/auth/me') return user || { detail: 'Authentication required' };
-      if (url === '/api/learning-objectives') return {};
+      if (url === '/api/learning-objectives') return { 'class-1': { title: 'Fractions', objectives: ['Compare fractions'] } };
       if (url === '/api/admin/teacher-access-requests') return { requests: [] };
+      if (url === '/api/classes/class-1/practice-examples') {
+        return {
+          examples: [
+            {
+              id: 7,
+              problem_text: 'What is 1/2 + 1/4?',
+              page_start: 3,
+            },
+          ],
+        };
+      }
+      if (url === '/api/me/performance?class_id=class-1') {
+        return {
+          assessment: { objective_1: 0.5 },
+          example_performance: { assigned_count: 1, correct_count: 0, attempted_count: 0 },
+        };
+      }
       return {};
     },
   })));
@@ -16,6 +33,17 @@ const mockApi = (user) => {
 
 beforeEach(() => {
   window.history.pushState({}, '', '/');
+  class MockWebSocket {
+    static OPEN = 1;
+
+    constructor() {
+      this.readyState = MockWebSocket.OPEN;
+    }
+
+    send = vi.fn();
+    close = vi.fn();
+  }
+  vi.stubGlobal('WebSocket', MockWebSocket);
 });
 
 test('unauthenticated users see sign in', async () => {
@@ -58,6 +86,31 @@ test('teacher class setup uses workflow tabs', async () => {
 
   expect(await screen.findByRole('heading', { name: /class material workflow/i })).toBeInTheDocument();
   expect(screen.getByLabelText(/course material pdf/i)).toBeInTheDocument();
+});
+
+test('student session uses workspace tabs', async () => {
+  window.history.pushState({}, '', '/chat/class-1');
+  mockApi({ id: 'student-1', email: 'student@example.com', display_name: 'Student', role: 'student' });
+  render(<App />);
+
+  expect(await screen.findByRole('button', { name: /^chat$/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: /practice problems/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /class material/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /progress/i })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /practice problems/i }));
+  expect(await screen.findByRole('heading', { name: /practice problems/i })).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole('button', { name: /what is 1\/2 \+ 1\/4/i }));
+  expect(screen.getByRole('button', { name: /^chat$/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(await screen.findByLabelText(/active example problem/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /class material/i }));
+  expect(await screen.findByRole('heading', { name: /class material/i })).toBeInTheDocument();
+  expect(screen.getByText(/material list access is coming next/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /progress/i }));
+  expect(await screen.findByRole('heading', { name: /^progress$/i })).toBeInTheDocument();
+  expect(screen.getByText(/learning progress/i)).toBeInTheDocument();
 });
 
 test('authenticated administrators visiting login are redirected to admin management', async () => {

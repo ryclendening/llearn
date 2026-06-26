@@ -93,7 +93,6 @@ function PerformancePanel({ classId, userId, compact = false, variant = 'default
                     throw new Error(errorData.detail || 'Could not fetch performance data.');
                 }
                 const data = await response.json();
-                console.log(data)
                 setPerformance(data);
                 setPerformanceError('');
             } catch (err) {

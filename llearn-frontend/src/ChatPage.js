@@ -7,6 +7,7 @@ import './ChatPage.css'; // Import the new CSS file
 
 function ChatPage() {
     const { classId } = useParams();
+    const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('chat');
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [practiceExamples, setPracticeExamples] = useState([]);
@@ -45,6 +46,14 @@ function ChatPage() {
 
     const activateExample = (example) => {
         setSelectedExampleId(String(example.id));
+        setPracticeResult(null);
+        setPracticeSolution('');
+        setPracticeError('');
+        setActiveWorkspaceTab('chat');
+    };
+
+    const clearSelectedExample = () => {
+        setSelectedExampleId('');
         setPracticeResult(null);
         setPracticeSolution('');
         setPracticeError('');
@@ -107,7 +116,7 @@ function ChatPage() {
 
     // Effect for auto-scrolling the chat window
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
     }, [messages]);
 
     const sendMessage = async () => {
@@ -203,153 +212,213 @@ function ChatPage() {
     return (
         <div className="chat-page-container">
             <HomeButton />
-            <h2 className="chat-page-title">Student Session</h2>
+            <div className="student-session-header">
+                <span className="student-session-eyebrow">Student Workspace</span>
+                <h2 className="chat-page-title">{classId}</h2>
+            </div>
 
             <div className="chat-main-content">
-                {/* Left Panel: Chat Interface */}
-                <div className="chat-panel">
-                    {selectedExample && (
-                        <section className="active-example-box" aria-label="Active example problem">
-                            <div className="active-example-header">
-                                <div>
-                                    <span className="active-example-eyebrow">Example Practice</span>
-                                    <h3>
-                                        {selectedExample.title || 'Selected Problem'}
-                                        {selectedExample.page_start ? ` · p. ${selectedExample.page_start}` : ''}
-                                    </h3>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="active-example-exit"
-                                    onClick={() => {
-                                        setSelectedExampleId('');
-                                        setPracticeResult(null);
-                                        setPracticeSolution('');
-                                        setPracticeError('');
-                                    }}
-                                >
-                                    Exit
-                                </button>
-                            </div>
-                            <div className="active-example-problem">
-                                <MathText text={selectedExample.problem_text} />
-                            </div>
-                            <p className="active-example-instructions">
-                                Submit one final answer below. The next message will be checked against the worked solution.
-                            </p>
-                            {practiceError && <p className="practice-error">{practiceError}</p>}
-                            {practiceResult && (
-                                <div className={`practice-result ${practiceResult.is_correct ? 'correct' : 'incorrect'}`}>
-                                    <strong>{practiceResult.is_correct ? 'Correct' : 'Not quite yet'}</strong>
-                                    <p><MathText text={practiceResult.feedback} /></p>
-                                    {!practiceResult.is_correct && (
-                                        <button type="button" onClick={revealPracticeSolution} disabled={practiceLoading}>
-                                            Show Solution
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                            {practiceSolution && (
-                                <div className="practice-solution">
-                                    <strong>Solution</strong>
-                                    <p><MathText text={practiceSolution} /></p>
-                                </div>
-                            )}
-                        </section>
-                    )}
-                    <div className="chat-messages">
-                        {messages.map((msg, index) => (
-                            <p key={index} className={`chat-message ${msg.sender.toLowerCase()}`}>
-                                <strong>{msg.sender}:</strong>{' '}
-                                <MathText text={msg.text} citations={msg.citations} onCitationClick={openCitation} />
-                            </p>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                    <div className="chat-input-area">
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                            placeholder={selectedExampleId ? "Enter your final answer for the selected example..." : "Type your message..."}
-                        />
-                        {!selectedExampleId && (
-                            <button onClick={sendMessage}>
-                                Send
-                            </button>
-                        )}
-                        {selectedExampleId && (
-                            <>
-                                <button
-                                    type="button"
-                                    className="check-answer-button"
-                                    onClick={submitPracticeAnswer}
-                                    disabled={practiceLoading}
-                                >
-                                    {practiceLoading ? 'Checking...' : 'Check Answer'}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="clear-example-button"
-                                    onClick={() => {
-                                        setSelectedExampleId('');
-                                        setPracticeResult(null);
-                                        setPracticeSolution('');
-                                        setPracticeError('');
-                                    }}
-                                >
-                                    Exit Example
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
+                <aside className="student-workspace-sidebar" aria-label="Student workspace">
+                    <button
+                        type="button"
+                        className={`student-workspace-tab ${activeWorkspaceTab === 'chat' ? 'active' : ''}`}
+                        aria-pressed={activeWorkspaceTab === 'chat'}
+                        onClick={() => setActiveWorkspaceTab('chat')}
+                    >
+                        Chat
+                    </button>
 
-                {/* Right Panel: Performance Panel */}
-                <div className="performance-panel-area">
-                    <div className="practice-panel">
-                        <div className="practice-header">
-                            <h3>Example Problems</h3>
-                            <button type="button" onClick={loadPracticeExamples}>Refresh</button>
+                    <button
+                        type="button"
+                        className={`student-workspace-tab ${activeWorkspaceTab === 'practice' ? 'active' : ''}`}
+                        aria-pressed={activeWorkspaceTab === 'practice'}
+                        onClick={() => setActiveWorkspaceTab('practice')}
+                    >
+                        Practice Problems
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`student-workspace-tab ${activeWorkspaceTab === 'materials' ? 'active' : ''}`}
+                        aria-pressed={activeWorkspaceTab === 'materials'}
+                        onClick={() => setActiveWorkspaceTab('materials')}
+                    >
+                        Class Material
+                    </button>
+
+                    <div className="student-sidebar-goals" aria-label="Student goals and progress">
+                        <div className="student-sidebar-goals-header">
+                            <span className="student-sidebar-goals-eyebrow">Goals</span>
+                            <strong>Your Progress</strong>
                         </div>
-                        {!selectedExample && practiceError && <p className="practice-error">{practiceError}</p>}
-                        {practiceExamples.length === 0 && !practiceError && (
-                            <p className="practice-empty">No example problems are available for this class yet.</p>
-                        )}
-                        {practiceExamples.length > 0 && (
-                            <div className="practice-card-list">
-                                {practiceExamples.map((example, index) => (
-                                    <button
-                                        key={example.id}
-                                        type="button"
-                                        className={`practice-card ${String(example.id) === String(selectedExampleId) ? 'active' : ''} ${solvedExampleIds.includes(example.id) ? 'solved' : ''}`}
-                                        onDoubleClick={() => activateExample(example)}
-                                        title="Double-click to work this problem in chat"
-                                    >
-                                        <span className="practice-card-meta">
-                                            Example {index + 1}
-                                            {example.page_start ? ` · p. ${example.page_start}` : ''}
-                                        </span>
-                                        <span className="practice-card-text">
-                                            <MathText text={example.problem_text} />
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                        {selectedExample && (
-                            <div className="practice-workspace">
-                                <p className="practice-empty">Active example. Enter a final answer, or exit to return to chat.</p>
-                            </div>
-                        )}
+
+                        <PerformancePanel
+                            classId={classId}
+                            variant="student-sidebar"
+                            activeExample={selectedExample}
+                        />
                     </div>
-                    <PerformancePanel
-                        classId={classId}
-                        variant="student-sidebar"
-                        activeExample={selectedExample}
-                    />
-                </div>
+                </aside>                
+
+                <section className="student-workspace-content">
+                    {activeWorkspaceTab === 'chat' && (
+                        <div className="chat-panel">
+                            {selectedExample && (
+                                <section className="active-example-box" aria-label="Active example problem">
+                                    <div className="active-example-header">
+                                        <div>
+                                            <span className="active-example-eyebrow">Example Practice</span>
+                                            <h3>
+                                                {selectedExample.title || 'Selected Problem'}
+                                                {selectedExample.page_start ? ` · p. ${selectedExample.page_start}` : ''}
+                                            </h3>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="active-example-exit"
+                                            onClick={clearSelectedExample}
+                                        >
+                                            Exit
+                                        </button>
+                                    </div>
+                                    <div className="active-example-problem">
+                                        <MathText text={selectedExample.problem_text} />
+                                    </div>
+                                    <p className="active-example-instructions">
+                                        Submit one final answer below. The next message will be checked against the worked solution.
+                                    </p>
+                                    {practiceError && <p className="practice-error">{practiceError}</p>}
+                                    {practiceResult && (
+                                        <div className={`practice-result ${practiceResult.is_correct ? 'correct' : 'incorrect'}`}>
+                                            <strong>{practiceResult.is_correct ? 'Correct' : 'Not quite yet'}</strong>
+                                            <p><MathText text={practiceResult.feedback} /></p>
+                                            {!practiceResult.is_correct && (
+                                                <button type="button" onClick={revealPracticeSolution} disabled={practiceLoading}>
+                                                    Show Solution
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {practiceSolution && (
+                                        <div className="practice-solution">
+                                            <strong>Solution</strong>
+                                            <p><MathText text={practiceSolution} /></p>
+                                        </div>
+                                    )}
+                                </section>
+                            )}
+                            <div className="chat-messages">
+                                {messages.map((msg, index) => (
+                                    <p key={index} className={`chat-message ${msg.sender.toLowerCase()}`}>
+                                        <strong>{msg.sender}:</strong>{' '}
+                                        <MathText text={msg.text} citations={msg.citations} onCitationClick={openCitation} />
+                                    </p>
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </div>
+                            <div className="chat-input-area">
+                                <input
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                                    placeholder={selectedExampleId ? "Enter your final answer for the selected example..." : "Type your message..."}
+                                />
+                                {!selectedExampleId && (
+                                    <button type="button" onClick={sendMessage}>
+                                        Send
+                                    </button>
+                                )}
+                                {selectedExampleId && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="check-answer-button"
+                                            onClick={submitPracticeAnswer}
+                                            disabled={practiceLoading}
+                                        >
+                                            {practiceLoading ? 'Checking...' : 'Check Answer'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="clear-example-button"
+                                            onClick={clearSelectedExample}
+                                        >
+                                            Exit Example
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeWorkspaceTab === 'practice' && (
+                        <div className="student-workspace-panel">
+                            <div className="workspace-panel-header">
+                                <div>
+                                    <h3>Practice Problems</h3>
+                                    <p>Choose a worked example to answer in chat.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="workspace-secondary-button"
+                                    onClick={loadPracticeExamples}
+                                >
+                                    Refresh
+                                </button>
+                            </div>
+                            {!selectedExample && practiceError && <p className="practice-error">{practiceError}</p>}
+                            {practiceExamples.length === 0 && !practiceError && (
+                                <p className="practice-empty">No example problems are available for this class yet.</p>
+                            )}
+                            {practiceExamples.length > 0 && (
+                                <div className="practice-card-list practice-card-grid">
+                                    {practiceExamples.map((example, index) => (
+                                        <button
+                                            key={example.id}
+                                            type="button"
+                                            className={`practice-card ${String(example.id) === String(selectedExampleId) ? 'active' : ''} ${solvedExampleIds.includes(example.id) ? 'solved' : ''}`}
+                                            onClick={() => activateExample(example)}
+                                        >
+                                            <span className="practice-card-meta">
+                                                Example {index + 1}
+                                                {example.page_start ? ` · p. ${example.page_start}` : ''}
+                                            </span>
+                                            <span className="practice-card-text">
+                                                <MathText text={example.problem_text} />
+                                            </span>
+                                            <em>Work in chat</em>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeWorkspaceTab === 'materials' && (
+                        <div className="student-workspace-panel">
+                            <div className="workspace-panel-header">
+                                <div>
+                                    <h3>Class Material</h3>
+                                    <p>Review class documents attached by your teacher.</p>
+                                </div>
+                            </div>
+                            <div className="workspace-empty-state">
+                                <strong>Material list access is coming next.</strong>
+                                <p>
+                                    Students can already open cited PDFs from chat responses. A dedicated document list is tracked separately so enrolled students can browse class materials safely.
+                                </p>
+                                <button
+                                    type="button"
+                                    className="workspace-secondary-button"
+                                    onClick={() => setActiveWorkspaceTab('chat')}
+                                >
+                                    Return to Chat
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </section>
             </div>
         </div>
     );
