@@ -14,3 +14,9 @@ conda run -n llearn_env python -m unittest discover -s tests -v
 conda run -n llearn_env python -m compileall -q .
 conda run -n llearn_env python -m uvicorn app:app --reload
 ```
+
+## Project Documentation
+
+- Keep the root `README.md` current as the project grows.
+- When making significant changes to app functionality, architecture, setup steps, local services, environment variables, or repository structure, update `README.md` in the same change.
+- Keep `AGENTS.md` focused on coding-agent instructions and operational conventions; put human-facing project documentation in `README.md`.
