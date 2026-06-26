@@ -3,6 +3,7 @@ import HomeButton from './HomeButton';
 import './LearningObjectivesForm.css';
 
 function LearningObjectivesForm() {
+    const [activeWorkflow, setActiveWorkflow] = useState('goals');
     const [lessonId, setLessonId] = useState('');
     const [title, setTitle] = useState('');
     const [objectives, setObjectives] = useState(['']);
@@ -113,6 +114,7 @@ function LearningObjectivesForm() {
         setGeneratedPlan(null);
         setGenAge('');
         setGenGenre('');
+        setActiveWorkflow('goals');
     };
 
     const handleSubmit = async (event) => {
@@ -421,130 +423,258 @@ function LearningObjectivesForm() {
     return (
         <div className="objectives-page-container">
             <HomeButton />
-            <h1 className="objectives-page-title">Create Learning Objectives</h1>
-
-            {/* ── AI Generator Section ── */}
-            <div className="objectives-form-card" style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ marginBottom: '1rem' }}>Generate with AI</h2>
-                <div className="form-group">
-                    <label>Student Age:</label>
-                    <input
-                        type="number" value={genAge} onChange={e => setGenAge(e.target.value)}
-                        placeholder="e.g., 10" className="form-input"
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Topic / Genre:</label>
-                    <input
-                        type="text" value={genGenre} onChange={e => setGenGenre(e.target.value)}
-                        placeholder="e.g., planets" className="form-input"
-                    />
-                </div>
-                {genError && <p className="error-message">{genError}</p>}
-                <button onClick={handleGenerate} className="submit-button" disabled={genLoading}>
-                    {genLoading ? 'Generating...' : 'Generate Objectives'}
-                </button>
-
-                {/* ── Preview generated plan ── */}
-                {generatedPlan && (
-                    <div className="generated-preview">
-                        <h3>{generatedPlan.title}</h3>
-                        <p className="lesson-id-label">Lesson ID: {generatedPlan.lesson_id}</p>
-                        <ul>
-                            {generatedPlan.objectives.map((obj, i) => (
-                                <li key={i}>{obj}</li>
-                            ))}
-                        </ul>
-                        <div className="preview-actions">
-                            <button onClick={applyGeneratedPlan} className="submit-button">Use These Objectives</button>
-                            <button onClick={handleGenerate} className="add-objective-button" disabled={genLoading}>
-                                {genLoading ? 'Regenerating...' : 'Regenerate'}
-                            </button>
-                            <button onClick={() => setGeneratedPlan(null)} className="discard-button">Discard</button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* ── Manual Form ── */}
-            <form onSubmit={handleSubmit} className="objectives-form-card">
-                <div className="form-group">
-                    <label htmlFor="lessonId">Lesson ID:</label>
-                    <input type="text" id="lessonId" value={lessonId} onChange={handleLessonIdChange}
-                        placeholder="e.g., science101" className="form-input" required />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="title">Title:</label>
-                    <input type="text" id="title" value={title} onChange={handleTitleChange}
-                        placeholder="e.g., Introduction to Plants" className="form-input" required />
-                </div>
-                <div className="form-group objectives-group">
-                    <label>Learning Objectives:</label>
-                    {objectives.map((objective, index) => (
-                        <div key={index} className="objective-input-row">
-                            <input type="text" value={objective} onChange={(e) => handleObjectiveChange(index, e)}
-                                placeholder={`Objective ${index + 1}`} className="form-input objective-input" required />
-                            {objectives.length > 1 && (
-                                <button type="button" onClick={() => removeObjectiveField(index)} className="remove-objective-button">&times;</button>
-                            )}
-                        </div>
-                    ))}
-                    <button type="button" onClick={addObjectiveField} className="add-objective-button">+ Add Objective</button>
-                </div>
-
-                {error && <p className="error-message">{error}</p>}
-                {successMessage && <p className="success-message">{successMessage}</p>}
-
-                <button type="submit" className="submit-button" disabled={loading}>
-                    {loading ? 'Submitting...' : 'Submit Objectives'}
-                </button>
-            </form>
-
-            <section className="objectives-form-card sessions-card">
-                <div className="sessions-header">
-                    <h2>Existing Class Sessions</h2>
+            <div className="objectives-page-shell">
+                <aside className="workflow-sidebar" aria-label="Teacher workflows">
+                    <h1 className="objectives-page-title">Class Setup</h1>
                     <button
                         type="button"
-                        onClick={loadClassSessions}
-                        className="add-objective-button refresh-sessions-button"
-                        disabled={sessionsLoading}
+                        className={`workflow-tab ${activeWorkflow === 'goals' ? 'active' : ''}`}
+                        aria-pressed={activeWorkflow === 'goals'}
+                        onClick={() => setActiveWorkflow('goals')}
                     >
-                        {sessionsLoading ? 'Refreshing...' : 'Refresh'}
+                        Goals
                     </button>
-                </div>
+                    <button
+                        type="button"
+                        className={`workflow-tab ${activeWorkflow === 'materials' ? 'active' : ''}`}
+                        aria-pressed={activeWorkflow === 'materials'}
+                        onClick={() => setActiveWorkflow('materials')}
+                    >
+                        Class Materials
+                    </button>
+                    <button
+                        type="button"
+                        className={`workflow-tab ${activeWorkflow === 'classes' ? 'active' : ''}`}
+                        aria-pressed={activeWorkflow === 'classes'}
+                        onClick={() => setActiveWorkflow('classes')}
+                    >
+                        Existing Classes
+                    </button>
+                    <button
+                        type="button"
+                        className={`workflow-tab ${activeWorkflow === 'generate' ? 'active' : ''}`}
+                        aria-pressed={activeWorkflow === 'generate'}
+                        onClick={() => setActiveWorkflow('generate')}
+                    >
+                        Generate with AI
+                    </button>
+                </aside>
 
-                {sessionsError && <p className="error-message">{sessionsError}</p>}
-                {!sessionsLoading && classSessions.length === 0 && !sessionsError && (
-                    <p className="empty-sessions-message">No class sessions found.</p>
-                )}
-                {classSessions.length > 0 && (
-                    <ul className="sessions-list">
-                        {classSessions.map((session) => (
-                            <li key={session.id} className="session-list-item">
-                                <div className="session-details">
-                                    <strong>{session.title}</strong>
-                                    <span>{session.id}</span>
-                                    <small>{session.objectives.length} objectives</small>
+                <main className="workflow-content">
+                    {activeWorkflow === 'generate' && (
+                        <section className="workflow-panel" aria-labelledby="generate-workflow-heading">
+                            <div className="workflow-heading-row">
+                                <div>
+                                    <h2 id="generate-workflow-heading">Generate with AI</h2>
+                                    <p>Create a starter class plan, then review and submit it in the goals workflow.</p>
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => handleDeleteSession(session.id)}
-                                    className="delete-session-button"
-                                    disabled={deleteSessionId === session.id}
+                                    className="add-objective-button workflow-switch-button"
+                                    onClick={() => setActiveWorkflow('goals')}
                                 >
-                                    {deleteSessionId === session.id ? 'Deleting...' : 'Delete'}
+                                    Enter Goals Manually
                                 </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+                            </div>
 
-            <form onSubmit={handleMaterialUpload} className="objectives-form-card material-upload-card">
-                <h2>Import Class Material</h2>
-                <div className="form-group">
-                    <label>Associated Classes:</label>
-                    <div className="class-picker">
+                            <div className="objectives-form-card">
+                                <h2>AI Objective Generator</h2>
+                                <div className="form-group">
+                                    <label>Student Age:</label>
+                                    <input
+                                        type="number" value={genAge} onChange={e => setGenAge(e.target.value)}
+                                        placeholder="e.g., 10" className="form-input"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Topic / Genre:</label>
+                                    <input
+                                        type="text" value={genGenre} onChange={e => setGenGenre(e.target.value)}
+                                        placeholder="e.g., planets" className="form-input"
+                                    />
+                                </div>
+                                {genError && <p className="error-message">{genError}</p>}
+                                <button type="button" onClick={handleGenerate} className="submit-button" disabled={genLoading}>
+                                    {genLoading ? 'Generating...' : 'Generate Objectives'}
+                                </button>
+
+                                {generatedPlan && (
+                                    <div className="generated-preview">
+                                        <h3>{generatedPlan.title}</h3>
+                                        <p className="lesson-id-label">Lesson ID: {generatedPlan.lesson_id}</p>
+                                        <ul>
+                                            {generatedPlan.objectives.map((obj, i) => (
+                                                <li key={i}>{obj}</li>
+                                            ))}
+                                        </ul>
+                                        <div className="preview-actions">
+                                            <button type="button" onClick={applyGeneratedPlan} className="submit-button">Use These Objectives</button>
+                                            <button type="button" onClick={handleGenerate} className="add-objective-button" disabled={genLoading}>
+                                                {genLoading ? 'Regenerating...' : 'Regenerate'}
+                                            </button>
+                                            <button type="button" onClick={() => setGeneratedPlan(null)} className="discard-button">Discard</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    )}
+
+                    {activeWorkflow === 'goals' && (
+                        <section className="workflow-panel" aria-labelledby="goals-workflow-heading">
+                            <div className="workflow-heading-row">
+                                <div>
+                                    <h2 id="goals-workflow-heading">Goal Workflow</h2>
+                                    <p>Create a class and define the learning objectives students should master.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="add-objective-button workflow-switch-button"
+                                    onClick={() => setActiveWorkflow('classes')}
+                                >
+                                    View Classes
+                                </button>
+                            </div>
+
+                            {/* ── Manual Form ── */}
+                            <form onSubmit={handleSubmit} className="objectives-form-card">
+                                <div className="form-group">
+                                    <label htmlFor="lessonId">Lesson ID:</label>
+                                    <input type="text" id="lessonId" value={lessonId} onChange={handleLessonIdChange}
+                                        placeholder="e.g., science101" className="form-input" required />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="title">Title:</label>
+                                    <input type="text" id="title" value={title} onChange={handleTitleChange}
+                                        placeholder="e.g., Introduction to Plants" className="form-input" required />
+                                </div>
+                                <div className="form-group objectives-group">
+                                    <label>Learning Objectives:</label>
+                                    {objectives.map((objective, index) => (
+                                        <div key={index} className="objective-input-row">
+                                            <input type="text" value={objective} onChange={(e) => handleObjectiveChange(index, e)}
+                                                placeholder={`Objective ${index + 1}`} className="form-input objective-input" required />
+                                            {objectives.length > 1 && (
+                                                <button type="button" onClick={() => removeObjectiveField(index)} className="remove-objective-button">&times;</button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button type="button" onClick={addObjectiveField} className="add-objective-button">+ Add Objective</button>
+                                </div>
+
+                                {error && <p className="error-message">{error}</p>}
+                                {successMessage && (
+                                    <div className="success-panel">
+                                        <p className="success-message">{successMessage}</p>
+                                        <button
+                                            type="button"
+                                            className="add-objective-button workflow-switch-button"
+                                            onClick={() => setActiveWorkflow('materials')}
+                                        >
+                                            Add Materials Next
+                                        </button>
+                                    </div>
+                                )}
+
+                                <button type="submit" className="submit-button" disabled={loading}>
+                                    {loading ? 'Submitting...' : 'Submit Objectives'}
+                                </button>
+                            </form>
+                        </section>
+                    )}
+
+                    {activeWorkflow === 'classes' && (
+                        <section className="workflow-panel" aria-labelledby="classes-workflow-heading">
+                            <div className="workflow-heading-row">
+                                <div>
+                                    <h2 id="classes-workflow-heading">Existing Classes</h2>
+                                    <p>Review class sessions before adding materials or opening student performance dashboards.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="add-objective-button workflow-switch-button"
+                                    onClick={() => setActiveWorkflow('materials')}
+                                >
+                                    Add Materials
+                                </button>
+                            </div>
+
+                            <section className="objectives-form-card sessions-card">
+                                <div className="sessions-header">
+                                    <h2>Existing Class Sessions</h2>
+                                    <button
+                                        type="button"
+                                        onClick={loadClassSessions}
+                                        className="add-objective-button refresh-sessions-button"
+                                        disabled={sessionsLoading}
+                                    >
+                                        {sessionsLoading ? 'Refreshing...' : 'Refresh'}
+                                    </button>
+                                </div>
+
+                                {sessionsError && <p className="error-message">{sessionsError}</p>}
+                                {!sessionsLoading && classSessions.length === 0 && !sessionsError && (
+                                    <p className="empty-sessions-message">No class sessions found.</p>
+                                )}
+                                {classSessions.length > 0 && (
+                                    <ul className="sessions-list">
+                                        {classSessions.map((session) => (
+                                            <li key={session.id} className="session-list-item">
+                                                <div className="session-details">
+                                                    <strong>{session.title}</strong>
+                                                    <span>{session.id}</span>
+                                                    <small>{session.objectives.length} objectives</small>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteSession(session.id)}
+                                                    className="delete-session-button"
+                                                    disabled={deleteSessionId === session.id}
+                                                >
+                                                    {deleteSessionId === session.id ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        </section>
+                    )}
+
+                    {activeWorkflow === 'materials' && (
+                        <section className="workflow-panel" aria-labelledby="materials-workflow-heading">
+                            <div className="workflow-heading-row">
+                                <div>
+                                    <h2 id="materials-workflow-heading">Class Material Workflow</h2>
+                                    <p>Upload PDFs, review extracted examples, and publish examples for students.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="add-objective-button workflow-switch-button"
+                                    onClick={() => setActiveWorkflow('classes')}
+                                >
+                                    View Classes
+                                </button>
+                            </div>
+
+                            {classSessions.length === 0 && !sessionsLoading && !sessionsError && (
+                                <div className="workflow-notice">
+                                    <strong>Create a class before importing material.</strong>
+                                    <button
+                                        type="button"
+                                        className="add-objective-button workflow-switch-button"
+                                        onClick={() => setActiveWorkflow('goals')}
+                                    >
+                                        Start Goal Workflow
+                                    </button>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleMaterialUpload} className="objectives-form-card material-upload-card">
+                                <h2>Import Class Material</h2>
+                                <div className="form-group">
+                                    <label>Associated Classes:</label>
+                                    <div className="class-picker">
                         <button
                             type="button"
                             className="class-picker-toggle"
@@ -729,7 +859,11 @@ function LearningObjectivesForm() {
                         </ul>
                     </div>
                 )}
-            </form>
+                            </form>
+                        </section>
+                    )}
+                </main>
+            </div>
         </div>
     );
 }

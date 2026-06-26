@@ -8,6 +8,12 @@ import operator
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from sentence_transformers import SentenceTransformer
+from assessment.evidence import (
+    assessment_system_prompt,
+    assessment_user_prompt,
+    latest_student_evidence,
+    student_message_can_change_mastery,
+)
 from vector_db.ingestion import EMBED_MODEL
 from vector_db.vector_store import SearchResult, get_vector_db
 
@@ -222,27 +228,24 @@ def teacher_node(state: TutorState) -> dict:
 
 
 def assessor_node(state: TutorState) -> dict:
-    """Incrementally updates student understanding after the latest exchange."""
+    """Updates mastery using the latest student-authored message as evidence."""
     objective_list = _build_objective_list(state["objectives"])
     previous_assessment = _normalize_assessment(state.get("assessment", {}), len(state["objectives"]))
-    latest_exchange = state["messages"][-2:]
+    evidence = latest_student_evidence(state.get("messages", []))
+    if not student_message_can_change_mastery(evidence):
+        mastered = bool(previous_assessment) and all(value == 1 for value in previous_assessment.values())
+        return {"assessment": previous_assessment, "mastered": mastered}
+
     system = {
         "role": "system",
-        "content": (
-            "You update a student's mastery assessment after each tutoring exchange. "
-            "Use the previous assessment as the baseline. Only change an objective from 0 to 1 "
-            "when the latest exchange gives clear evidence that the student understands it. "
-            "Do not change a mastered objective back to 0 unless the latest exchange clearly "
-            "shows the previous mastery was wrong. Return JSON only."
-        ),
+        "content": assessment_system_prompt(),
     }
     prompt = {
         "role": "user",
-        "content": (
-            f"Objectives:\n{objective_list}\n\n"
-            f"Previous assessment:\n{json.dumps(previous_assessment)}\n\n"
-            f"Latest exchange:\n{json.dumps(latest_exchange)}\n\n"
-            "Return ONLY a JSON object mapping every objective key to 1 or 0."
+        "content": assessment_user_prompt(
+            objective_list=objective_list,
+            previous_assessment=previous_assessment,
+            evidence=evidence,
         ),
     }
     response = openai.chat.completions.create(

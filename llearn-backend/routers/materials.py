@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from auth.dependencies import require_role
 from db.crud import (
     count_course_materials_with_storage_path,
     course_material_to_payload,
@@ -18,6 +19,7 @@ from db.crud import (
     list_course_materials,
 )
 from db.session import get_db
+from db.models import User
 from services.material_processing import VectorIngestionError, process_materials
 from vector_db.vector_store import get_vector_db
 
@@ -34,9 +36,10 @@ async def upload_class_material(
     file: UploadFile = File(...),
     class_ids: list[str] | None = Form(default=None),
     db: Session = Depends(get_db),
+    teacher: User = Depends(require_role("teacher")),
 ):
     selected_class_ids = _normalize_class_ids(class_ids or [class_id])
-    result = await _upload_material_for_classes(file, selected_class_ids, db)
+    result = await _upload_material_for_classes(file, selected_class_ids, db, teacher)
     if class_ids is None and len(result["materials"]) == 1:
         payload = result["materials"][0]
         payload["extracted_example_count"] = result["extracted_example_count"]
@@ -50,9 +53,10 @@ async def upload_material(
     file: UploadFile = File(...),
     class_ids: list[str] = Form(...),
     db: Session = Depends(get_db),
+    teacher: User = Depends(require_role("teacher")),
 ):
     selected_class_ids = _normalize_class_ids(class_ids)
-    return await _upload_material_for_classes(file, selected_class_ids, db)
+    return await _upload_material_for_classes(file, selected_class_ids, db, teacher)
 
 
 def _normalize_class_ids(class_ids: list[str]) -> list[str]:
@@ -70,12 +74,15 @@ async def _upload_material_for_classes(
     file: UploadFile,
     class_ids: list[str],
     db: Session,
+    teacher: User,
 ):
     if file.content_type not in SUPPORTED_CONTENT_TYPES:
         raise HTTPException(status_code=400, detail="Only PDF uploads are supported right now.")
     missing_class_ids = [class_id for class_id in class_ids if not get_lesson(db, class_id)]
     if missing_class_ids:
         raise HTTPException(status_code=404, detail=f"Class not found: {', '.join(missing_class_ids)}")
+    if any(get_lesson(db, class_id).owner_user_id != teacher.id for class_id in class_ids):
+        raise HTTPException(status_code=403, detail="You do not own every selected class")
 
     original_name = Path(file.filename or "material.pdf").name
     material_token = uuid4().hex
@@ -126,7 +133,12 @@ async def _upload_material_for_classes(
 
 
 @router.get("/classes/{class_id}/materials")
-async def get_class_materials(class_id: str, db: Session = Depends(get_db)):
+async def get_class_materials(
+    class_id: str, teacher: User = Depends(require_role("teacher")), db: Session = Depends(get_db),
+):
+    lesson = get_lesson(db, class_id)
+    if lesson and lesson.owner_user_id != teacher.id:
+        raise HTTPException(status_code=403, detail="You do not own this class")
     materials = list_course_materials(db, class_id)
     if materials is None:
         raise HTTPException(status_code=404, detail="Class not found")
@@ -134,10 +146,14 @@ async def get_class_materials(class_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/materials/{material_id}")
-async def remove_material(material_id: int, db: Session = Depends(get_db)):
+async def remove_material(
+    material_id: int, teacher: User = Depends(require_role("teacher")), db: Session = Depends(get_db),
+):
     material = get_course_material(db, material_id)
     if material is None:
         raise HTTPException(status_code=404, detail="Material not found")
+    if material.lesson.owner_user_id != teacher.id:
+        raise HTTPException(status_code=403, detail="You do not own this class")
 
     storage_path = material.storage_path
     vector_document_id = material.vector_document_id
@@ -166,10 +182,17 @@ async def remove_material(material_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/materials/{material_id}/file")
-async def get_material_file(material_id: int, db: Session = Depends(get_db)):
+async def get_material_file(
+    material_id: int, user: User = Depends(require_role("teacher", "student")), db: Session = Depends(get_db),
+):
     material = get_course_material(db, material_id)
     if material is None:
         raise HTTPException(status_code=404, detail="Material not found")
+    allowed = material.lesson.owner_user_id == user.id or (
+        user.student is not None and any(item.lesson_id == material.lesson_id for item in user.student.enrollments)
+    )
+    if not allowed:
+        raise HTTPException(status_code=403, detail="You cannot access this material")
 
     storage_path = Path(material.storage_path)
     if not storage_path.exists():

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -24,9 +25,11 @@ class Lesson(Base):
     id: Mapped[str] = mapped_column(String(120), primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
+    owner_user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     course: Mapped[Course | None] = relationship(back_populates="lessons")
+    owner: Mapped["User"] = relationship(back_populates="owned_lessons")
     objectives: Mapped[list["LearningObjective"]] = relationship(
         back_populates="lesson",
         cascade="all, delete-orphan",
@@ -56,8 +59,10 @@ class Student(Base):
     __tablename__ = "students"
 
     id: Mapped[str] = mapped_column(String(120), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
+    user: Mapped["User"] = relationship(back_populates="student")
     enrollments: Mapped[list["Enrollment"]] = relationship(back_populates="student", cascade="all, delete-orphan")
     assessments: Mapped[list["Assessment"]] = relationship(back_populates="student", cascade="all, delete-orphan")
     chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="student", cascade="all, delete-orphan")
@@ -185,3 +190,48 @@ class ExampleAttempt(Base):
     student: Mapped[Student] = relationship(back_populates="example_attempts")
     lesson: Mapped[Lesson] = relationship(back_populates="example_attempts")
     example: Mapped[ExtractedExampleProblem] = relationship(back_populates="attempts")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(30), default="student", nullable=False, index=True)
+    google_subject: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    student: Mapped[Student | None] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    owned_lessons: Mapped[list[Lesson]] = relationship(back_populates="owner")
+    auth_sessions: Mapped[list["AuthSession"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    teacher_access_requests: Mapped[list["TeacherAccessRequest"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="TeacherAccessRequest.user_id",
+    )
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="auth_sessions")
+
+
+class TeacherAccessRequest(Base):
+    __tablename__ = "teacher_access_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", nullable=False, index=True)
+    reviewed_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="teacher_access_requests", foreign_keys=[user_id])
