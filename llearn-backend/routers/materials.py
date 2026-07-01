@@ -19,7 +19,7 @@ from db.crud import (
     list_course_materials,
 )
 from db.session import get_db
-from db.models import User
+from db.models import CourseMaterial, User
 from services.material_processing import VectorIngestionError, process_materials
 from vector_db.vector_store import get_vector_db
 
@@ -134,15 +134,37 @@ async def _upload_material_for_classes(
 
 @router.get("/classes/{class_id}/materials")
 async def get_class_materials(
-    class_id: str, teacher: User = Depends(require_role("teacher")), db: Session = Depends(get_db),
+    class_id: str, user: User = Depends(require_role("teacher", "student")), db: Session = Depends(get_db),
 ):
     lesson = get_lesson(db, class_id)
-    if lesson and lesson.owner_user_id != teacher.id:
-        raise HTTPException(status_code=403, detail="You do not own this class")
+    if lesson is not None:
+        if user.role == "teacher" and lesson.owner_user_id != user.id:
+            raise HTTPException(status_code=403, detail="You do not own this class")
+        if user.role == "student" and not _student_is_enrolled(user, class_id):
+            raise HTTPException(status_code=403, detail="Student is not enrolled in this class")
     materials = list_course_materials(db, class_id)
     if materials is None:
         raise HTTPException(status_code=404, detail="Class not found")
+    if user.role == "student":
+        return {"materials": [_student_material_to_payload(material) for material in materials]}
     return {"materials": [course_material_to_payload(material) for material in materials]}
+
+
+def _student_is_enrolled(user: User, class_id: str) -> bool:
+    return user.student is not None and any(item.lesson_id == class_id for item in user.student.enrollments)
+
+
+def _student_material_to_payload(material: CourseMaterial) -> dict:
+    return {
+        "id": material.id,
+        "class_id": material.lesson_id,
+        "filename": material.filename,
+        "content_type": material.content_type,
+        "status": material.status,
+        "chunk_count": material.chunk_count,
+        "extraction_status": material.extraction_status,
+        "created_at": material.created_at.isoformat(),
+    }
 
 
 @router.delete("/materials/{material_id}")

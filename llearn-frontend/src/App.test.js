@@ -20,6 +20,26 @@ const mockApi = (user) => {
           ],
         };
       }
+      if (url === '/api/classes/class-1/materials') {
+        return {
+          materials: [
+            {
+              id: 11,
+              filename: 'fractions-notes.pdf',
+              status: 'ready',
+              chunk_count: 4,
+              extraction_status: 'completed',
+            },
+            {
+              id: 12,
+              filename: 'practice-review.pdf',
+              status: 'ready',
+              chunk_count: 2,
+              extraction_status: 'completed',
+            },
+          ],
+        };
+      }
       if (url === '/api/me/performance?class_id=class-1') {
         return {
           assessment: { objective_1: 0.5 },
@@ -35,9 +55,11 @@ beforeEach(() => {
   window.history.pushState({}, '', '/');
   class MockWebSocket {
     static OPEN = 1;
+    static instances = [];
 
     constructor() {
       this.readyState = MockWebSocket.OPEN;
+      MockWebSocket.instances.push(this);
     }
 
     send = vi.fn();
@@ -99,6 +121,20 @@ test('student session uses workspace tabs', async () => {
   expect(await screen.findByText(/learning progress/i)).toBeInTheDocument();
   expect(screen.getByText(/compare fractions/i)).toBeInTheDocument();
 
+  const chatInput = screen.getByPlaceholderText(/type your message/i);
+  const socket = WebSocket.instances[0];
+  const suggestedActions = [
+    ['Give me a hint', 'Give me a hint without revealing the answer.'],
+    ['Explain another way', 'Explain this another way with a different example.'],
+    ['Quiz me', 'Quiz me on this objective with one question at a time.'],
+    ['Review objective', 'Review the current learning objective with me.'],
+  ];
+  suggestedActions.forEach(([label, prompt]) => {
+    fireEvent.click(screen.getByRole('button', { name: label }));
+    expect(chatInput).toHaveValue(prompt);
+  });
+  expect(socket.send).not.toHaveBeenCalled();
+
   fireEvent.click(screen.getByRole('button', { name: /practice problems/i }));
   expect(await screen.findByRole('heading', { name: /practice problems/i })).toBeInTheDocument();
   expect(screen.getByText(/compare fractions/i)).toBeInTheDocument();
@@ -109,7 +145,26 @@ test('student session uses workspace tabs', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /class material/i }));
   expect(await screen.findByRole('heading', { name: /class material/i })).toBeInTheDocument();
-  expect(screen.getByText(/material list access is coming next/i)).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: /fractions-notes.pdf/i })).toBeInTheDocument();
+  expect(screen.queryByText(/ready · 4 chunks/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/example extraction: completed/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/review class documents attached by your teacher/i)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /fractions-notes.pdf/i })).toHaveClass('active');
+  expect(screen.getByRole('button', { name: /fractions-notes.pdf/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: /practice-review.pdf/i })).not.toHaveClass('active');
+  expect(screen.getByRole('button', { name: /practice-review.pdf/i })).toHaveAttribute('aria-pressed', 'false');
+  expect(screen.getByTitle(/class material: fractions-notes.pdf/i)).toHaveAttribute(
+    'src',
+    '/api/materials/11/file'
+  );
+  fireEvent.click(screen.getByRole('button', { name: /practice-review.pdf/i }));
+  expect(screen.getByRole('button', { name: /practice-review.pdf/i })).toHaveClass('active');
+  expect(screen.getByRole('button', { name: /practice-review.pdf/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('button', { name: /fractions-notes.pdf/i })).toHaveAttribute('aria-pressed', 'false');
+  expect(screen.getByTitle(/class material: practice-review.pdf/i)).toHaveAttribute(
+    'src',
+    '/api/materials/12/file'
+  );
   expect(screen.getByText(/compare fractions/i)).toBeInTheDocument();
 });
 

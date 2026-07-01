@@ -5,6 +5,13 @@ import MathText from './MathText';
 import PerformancePanel from './PerformancePanel';
 import './ChatPage.css'; // Import the new CSS file
 
+const SUGGESTED_CHAT_ACTIONS = [
+    { label: 'Give me a hint', prompt: 'Give me a hint without revealing the answer.' },
+    { label: 'Explain another way', prompt: 'Explain this another way with a different example.' },
+    { label: 'Quiz me', prompt: 'Quiz me on this objective with one question at a time.' },
+    { label: 'Review objective', prompt: 'Review the current learning objective with me.' },
+];
+
 function ChatPage() {
     const { classId } = useParams();
     const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('chat');
@@ -17,6 +24,10 @@ function ChatPage() {
     const [practiceSolution, setPracticeSolution] = useState('');
     const [practiceLoading, setPracticeLoading] = useState(false);
     const [practiceError, setPracticeError] = useState('');
+    const [classMaterials, setClassMaterials] = useState([]);
+    const [selectedMaterialId, setSelectedMaterialId] = useState('');
+    const [materialsLoading, setMaterialsLoading] = useState(false);
+    const [materialsError, setMaterialsError] = useState('');
     const socket = useRef(null);
     const messagesEndRef = useRef(null);
 
@@ -43,6 +54,8 @@ function ChatPage() {
     };
 
     const selectedExample = practiceExamples.find((example) => String(example.id) === String(selectedExampleId));
+    const selectedMaterial = classMaterials.find((material) => String(material.id) === String(selectedMaterialId));
+    const selectedMaterialUrl = selectedMaterial ? `/api/materials/${selectedMaterial.id}/file` : '';
 
     const activateExample = (example) => {
         setSelectedExampleId(String(example.id));
@@ -75,6 +88,36 @@ function ChatPage() {
         } catch (err) {
             setPracticeError(err.message || 'Could not load example problems.');
             setPracticeExamples([]);
+        }
+    };
+
+    const loadClassMaterials = async () => {
+        if (!classId) {
+            return;
+        }
+
+        setMaterialsLoading(true);
+        try {
+            const response = await fetch(`/api/classes/${encodeURIComponent(classId)}/materials`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.detail || 'Could not load class materials.');
+            }
+            const materials = Array.isArray(data.materials) ? data.materials : [];
+            setClassMaterials(materials);
+            setSelectedMaterialId((currentId) => {
+                if (materials.some((material) => String(material.id) === String(currentId))) {
+                    return currentId;
+                }
+                return materials[0]?.id ? String(materials[0].id) : '';
+            });
+            setMaterialsError('');
+        } catch (err) {
+            setMaterialsError(err.message || 'Could not load class materials.');
+            setClassMaterials([]);
+            setSelectedMaterialId('');
+        } finally {
+            setMaterialsLoading(false);
         }
     };
 
@@ -112,6 +155,7 @@ function ChatPage() {
 
     useEffect(() => {
         loadPracticeExamples();
+        loadClassMaterials();
     }, [classId]);
 
     // Effect for auto-scrolling the chat window
@@ -316,6 +360,19 @@ function ChatPage() {
                                 ))}
                                 <div ref={messagesEndRef} />
                             </div>
+                            {!selectedExampleId && (
+                                <div className="suggested-chat-actions" aria-label="Suggested chat actions">
+                                    {SUGGESTED_CHAT_ACTIONS.map((action) => (
+                                        <button
+                                            key={action.label}
+                                            type="button"
+                                            onClick={() => setInput(action.prompt)}
+                                        >
+                                            {action.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div className="chat-input-area">
                                 <input
                                     type="text"
@@ -396,26 +453,57 @@ function ChatPage() {
                     )}
 
                     {activeWorkspaceTab === 'materials' && (
-                        <div className="student-workspace-panel">
-                            <div className="workspace-panel-header">
-                                <div>
-                                    <h3>Class Material</h3>
-                                    <p>Review class documents attached by your teacher.</p>
-                                </div>
-                            </div>
-                            <div className="workspace-empty-state">
-                                <strong>Material list access is coming next.</strong>
-                                <p>
-                                    Students can already open cited PDFs from chat responses. A dedicated document list is tracked separately so enrolled students can browse class materials safely.
-                                </p>
+                        <div className="student-workspace-panel material-workspace-panel">
+                            <div className="workspace-panel-header compact">
+                                <h3>Class Material</h3>
                                 <button
                                     type="button"
                                     className="workspace-secondary-button"
-                                    onClick={() => setActiveWorkspaceTab('chat')}
+                                    onClick={loadClassMaterials}
+                                    disabled={materialsLoading}
                                 >
-                                    Return to Chat
+                                    {materialsLoading ? 'Refreshing...' : 'Refresh'}
                                 </button>
                             </div>
+                            {materialsError && <p className="practice-error">{materialsError}</p>}
+                            {materialsLoading && classMaterials.length === 0 && (
+                                <p className="practice-empty">Loading class materials...</p>
+                            )}
+                            {!materialsLoading && classMaterials.length === 0 && !materialsError && (
+                                <p className="practice-empty">No class materials are available yet.</p>
+                            )}
+                            {classMaterials.length > 0 && (
+                                <div className="class-material-browser">
+                                    <div className="class-material-list" aria-label="Class materials">
+                                        {classMaterials.map((material) => (
+                                            <button
+                                                key={material.id}
+                                                type="button"
+                                                className={`class-material-card ${String(material.id) === String(selectedMaterialId) ? 'active' : ''}`}
+                                                aria-pressed={String(material.id) === String(selectedMaterialId)}
+                                                onClick={() => setSelectedMaterialId(String(material.id))}
+                                            >
+                                                <span>
+                                                    <span className="class-material-title">{material.filename}</span>
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {selectedMaterial && (
+                                        <section className="class-material-viewer" aria-label={`Preview of ${selectedMaterial.filename}`}>
+                                            <div className="class-material-viewer-header">
+                                                <a href={selectedMaterialUrl} target="_blank" rel="noreferrer">
+                                                    Open in new tab
+                                                </a>
+                                            </div>
+                                            <iframe
+                                                title={`Class material: ${selectedMaterial.filename}`}
+                                                src={selectedMaterialUrl}
+                                            />
+                                        </section>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </section>
